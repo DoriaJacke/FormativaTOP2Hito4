@@ -1,0 +1,77 @@
+# Normativa de referencia - Minutas infantiles 12 a 36 meses
+
+Documento de demostracion para el sistema RAG de minutas alimentarias.
+
+## Circular JUNJI N 73 (2022) - Extracto
+
+Los establecimientos educativos deben planificar minutas semanales considerando:
+- Grupos alimentarios: cereales, frutas, verduras, legumbres, carnes, lacteos.
+- Porciones adaptadas a ninos de 12 a 36 meses.
+- Restriccion de alergenos declarados en la ficha del nino.
+
+### Tiempos de comida y energia
+- Desayuno: 200 a 300 kcal.
+- Almuerzo: 250 a 350 kcal.
+- Once: 200 a 300 kcal.
+
+### Porciones orientativas (12-24 meses)
+- Cereales cocidos: 40 a 60 gramos.
+- Proteina animal: 60 a 80 gramos.
+- Verduras: 30 a 50 gramos.
+- Fruta: 80 a 120 gramos.
+
+### Porciones orientativas (24-36 meses)
+- Cereales cocidos: 60 a 80 gramos.
+- Proteina animal: 70 a 90 gramos.
+- Verduras: 40 a 60 gramos.
+- Fruta: 100 a 150 gramos.
+
+## Tabla MINSAL - Composicion nutricional (extracto)
+
+Arroz grano largo cocido (100 g):
+- Energia: 130 kcal
+- Proteinas: 2.7 g
+- Carbohidratos: 28 g
+- Grasas: 0.3 g
+
+Pechuga de pollo cocida (100 g):
+- Energia: 165 kcal
+- Proteinas: 31 g
+- Carbohidratos: 0 g
+- Grasas: 3.6 g
+
+Zanahoria cocida (100 g):
+- Energia: 35 kcal
+- Proteinas: 0.8 g
+- Carbohidratos: 8.2 g
+- Grasas: 0.2 g
+
+Aceite de oliva (100 g):
+- Energia: 884 kcal
+- Proteinas: 0 g
+- Carbohidratos: 0 g
+- Grasas: 100 g
+
+## Alergenos frecuentes en jardines infantiles
+
+Deben excluirse completamente del plato cuando esten declarados:
+- Lactosa y proteina de leche de vaca
+- Huevo
+- Mariscos y crustaceos
+- Mani
+- Gluten (en casos diagnosticados)
+- Soja
+
+## Ingredientes recomendados con nombre local chileno
+
+Usar denominaciones locales:
+- Porotos (no frijoles)
+- Choclo (no elote)
+- Palta (no aguacate)
+- Zapallo italiano
+- Merken (condimento, no alergeno por defecto)
+
+## Regla de verificacion
+
+Antes de marcar verificado_alergenos=true, revisar cada ingrediente contra
+la lista de alergenos del nino. Si existe duda, responder con error y alternativas.

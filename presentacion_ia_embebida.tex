@@ -1,0 +1,1394 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ─── Tema y colores ──────────────────────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize items}[circle]
+
+% ─── Encoding y lenguaje ─────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+
+% ─── Gráficos y diagramas ────────────────────────────────────────────────────
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,
+                backgrounds,calc,shadows}
+
+% ─── Código fuente ───────────────────────────────────────────────────────────
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codegreen}{rgb}{0,0.52,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.5,0,0.62}
+\definecolor{codeblue}{rgb}{0.0,0.18,0.72}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.94}
+\definecolor{codered}{rgb}{0.68,0.1,0.1}
+\definecolor{keyorange}{rgb}{0.75,0.35,0.0}
+
+\lstdefinestyle{pythonstyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{codeblue}\bfseries,
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\fontsize{6.8}{8.2}\selectfont,
+    breakatwhitespace=false,
+    breaklines=true,
+    keepspaces=true,
+    numbers=left,
+    numbersep=4pt,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    language=Python,
+    frame=single,
+    rulecolor=\color{black!30},
+    xleftmargin=10pt,
+    morekeywords={from,import,as,def,return,True,False,None,
+                  class,self,with,yield,lambda,async,await},
+}
+
+\lstdefinestyle{jsonstyle}{
+    backgroundcolor=\color{backcolour},
+    basicstyle=\ttfamily\fontsize{6.8}{8.2}\selectfont,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{black!30},
+    showstringspaces=false,
+    xleftmargin=10pt,
+    morestring=[b]",
+    stringstyle=\color{codepurple},
+}
+
+\lstdefinestyle{shellstyle}{
+    backgroundcolor=\color{gray!10},
+    basicstyle=\ttfamily\fontsize{7}{8.5}\selectfont,
+    breaklines=true,
+    frame=single,
+    rulecolor=\color{black!30},
+    showstringspaces=false,
+}
+
+% ─── Otros paquetes ──────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{array}
+
+% ─── Información del documento ───────────────────────────────────────────────
+\title[IA Embebida en Sistemas]{\textbf{IA Embebida en Sistemas Computacionales}}
+\subtitle{LLM \textbullet{} RAG \textbullet{} Redis \textbullet{} LangChain \textbullet{} Ollama}
+\author[Ing. Informática]{\textbf{Curso: Ingeniería de Software con IA}}
+\institute[Universidad]{Departamento de Ciencias de la Computación}
+\date{Semestre I -- 2026}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 1: PORTADA
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 2: AGENDA
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Agenda de la Clase}
+  \begin{columns}
+    \column{0.5\textwidth}
+      \begin{enumerate}
+        \item Motivación y objetivos
+        \item Problema de negocio
+        \item Arquitectura tradicional \textit{vs.} moderna
+        \item Componente RAG: fundamentos y pipeline
+        \item Componente Redis: memoria contextual
+        \item Componente LangChain: orquestación LCEL
+      \end{enumerate}
+    \column{0.5\textwidth}
+      \begin{enumerate}
+        \setcounter{enumi}{6}
+        \item Pre-Prompt Engineering
+        \item Salidas estructuradas en JSON
+        \item Implementación paso a paso
+        \item Actividades guiadas (3)
+        \item Preguntas de reflexión
+        \item Arquitectura final integrada
+        \item Conclusiones y próxima clase
+      \end{enumerate}
+  \end{columns}
+  \vspace{0.8em}
+  \begin{exampleblock}{Prerrequisitos asumidos}
+    Ollama local, embeddings, chunking básico, RAG introductorio, recuperación documental.
+  \end{exampleblock}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 3: OBJETIVOS
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Objetivos de Aprendizaje}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Comprensión arquitectural}
+      \begin{enumerate}
+        \item Comprender un LLM como \textbf{componente} dentro de un sistema mayor, no como solución en sí mismo.
+        \item Diseñar una arquitectura que integre Ollama, LangChain, Redis y RAG con responsabilidades bien definidas.
+        \item Aplicar Prompt Engineering para restringir el comportamiento del LLM en un dominio específico.
+      \end{enumerate}
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{exampleblock}{Habilidades prácticas}
+      \begin{enumerate}
+        \setcounter{enumi}{3}
+        \item Implementar un pipeline RAG funcional con \texttt{ChromaDB} y \texttt{OllamaEmbeddings}.
+        \item Utilizar Redis como memoria de sesión persistente mediante \texttt{RedisChatMessageHistory}.
+        \item Construir una cadena LCEL que produzca objetos JSON validados con Pydantic, consumibles por otras aplicaciones.
+      \end{enumerate}
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 4: MOTIVACIÓN
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Motivación: Del LLM Aislado al Sistema Inteligente}
+  \begin{columns}
+    \column{0.6\textwidth}
+    \begin{alertblock}{El error conceptual más común en proyectos de IA}
+      Tratar el LLM como si fuera \textbf{la aplicación} en lugar de tratarlo
+      como uno de sus componentes. Un LLM sin contexto, sin memoria y sin
+      restricciones estructurales produce resultados impredecibles e
+      inintegrables.
+    \end{alertblock}
+    \vspace{0.5em}
+    \begin{block}{La narrativa de esta clase}
+      \centering
+      \large
+      $\text{LLM solo}$
+      $\;\longrightarrow\;$
+      $\text{LLM + RAG}$
+      $\;\longrightarrow\;$\\[0.4em]
+      $\text{Sistema inteligente}$
+      $\;\longrightarrow\;$
+      $\textbf{Aplicación empresarial}$
+    \end{block}
+    \column{0.4\textwidth}
+    \begin{exampleblock}{Lo que construiremos hoy}
+      \begin{itemize}
+        \item \textbf{RAG}: LLM con conocimiento del dominio
+        \item \textbf{Redis}: LLM con memoria de sesión
+        \item \textbf{LangChain}: LLM orquestado y trazable
+        \item \textbf{JSON}: salida consumible por APIs
+        \item \textbf{Pydantic}: salida validada y tipada
+      \end{itemize}
+    \end{exampleblock}
+    \begin{block}{}
+      \scriptsize
+      \textbf{Reemplazabilidad}: una cadena LCEL bien diseñada
+      permite cambiar \texttt{llama3.2} por \texttt{gpt-4o} sin
+      modificar el resto del sistema.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 5: PROBLEMA DE NEGOCIO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Caso de Estudio: Sistema de Minutas Alimentarias}
+  \begin{columns}
+    \column{0.55\textwidth}
+    \begin{block}{Contexto del problema}
+      \begin{itemize}
+        \item Jardines infantiles JUNJI/VTF atienden niños de 0--3 años
+        \item Cada niño posee un perfil de \textbf{alergias e intolerancias} documentado
+        \item Se requieren minutas semanales por niño, por tiempo de comida
+        \item Una nutricionista dedica $\approx$8 horas/semana a este proceso manual
+        \item Errores en alergias tienen \textbf{consecuencias médicas graves}
+      \end{itemize}
+    \end{block}
+    \vspace{0.3em}
+    \begin{alertblock}{Restricciones del dominio}
+      \begin{itemize}
+        \item Normativa JUNJI circular N$^{\circ}$73 (2022): porciones, grupos alimentarios
+        \item Tablas MINSAL de composición de alimentos
+        \item Restricción calórica: 200--350 kcal por tiempo de comida
+        \item Ingredientes disponibles en Chile con nombre local
+      \end{itemize}
+    \end{alertblock}
+    \column{0.45\textwidth}
+    \begin{exampleblock}{Salida esperada del sistema}
+      \scriptsize
+      El sistema debe retornar JSON estructurado:
+      \vspace{0.4em}
+      \begin{itemize}
+        \item \texttt{nino\_id}: identificador del niño
+        \item \texttt{semana}: semana ISO del año
+        \item \texttt{dias[]}: array de 5 días hábiles
+        \item \texttt{tiempos[]}: desayuno, almuerzo, once
+        \item \texttt{ingredientes[]}: nombre + gramos
+        \item \texttt{alergenos\_excluidos[]}: lista verificada
+        \item \texttt{kcal}: valor calórico calculado
+        \item \texttt{verificado\_alergenos}: booleano
+      \end{itemize}
+    \end{exampleblock}
+    \vspace{0.3em}
+    \begin{block}{Beneficio medible}
+      \scriptsize
+      De 8 horas/semana $\longrightarrow$ 15 minutos de revisión.
+      El sistema genera; la nutricionista valida.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 6: ARQUITECTURA TRADICIONAL
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Arquitectura Tradicional: El Enfoque Incorrecto}
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, rounded corners=4pt, minimum width=2.0cm,
+              minimum height=0.75cm, text centered, font=\small,
+              draw=black!50, fill=white, drop shadow},
+  boxred/.style={rectangle, rounded corners=4pt, minimum width=2.0cm,
+              minimum height=0.75cm, text centered, font=\small,
+              draw=red!60, fill=red!8, drop shadow},
+  arr/.style={-Stealth, thick, draw=black!55},
+  arrd/.style={-Stealth, thick, draw=red!55, dashed},
+]
+  \node[box] (user) at (0,0)   {Usuario};
+  \node[box] (app)  at (3,0)   {Aplicación\\Web};
+  \node[boxred] (llm)  at (6,0)   {LLM\\(Ollama)};
+  \node[boxred] (resp) at (9,0)   {Texto\\libre};
+
+  \draw[arr] (user) -- (app);
+  \draw[arr] (app) -- node[above, font=\scriptsize]{prompt sin contexto} (llm);
+  \draw[arr] (llm)  -- (resp);
+
+  % Problemas debajo
+  \node[boxred, text width=2.2cm, align=center] (p1) at (2.5,-2.0)
+        {\scriptsize\textbf{Sin memoria}\\\scriptsize sesión stateless};
+  \node[boxred, text width=2.2cm, align=center] (p2) at (5.5,-2.0)
+        {\scriptsize\textbf{Sin contexto}\\\scriptsize ignora normativa};
+  \node[boxred, text width=2.2cm, align=center] (p3) at (8.5,-2.0)
+        {\scriptsize\textbf{Sin estructura}\\\scriptsize texto no parseable};
+
+  \draw[arrd] (app.south)  -- (p1.north);
+  \draw[arrd] (llm.south)  -- (p2.north);
+  \draw[arrd] (resp.south) -- (p3.north);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.3em}
+\begin{alertblock}{Por qué falla este enfoque}
+  El LLM \textbf{no recuerda} consultas anteriores, \textbf{no conoce} la normativa JUNJI ni las tablas MINSAL,
+  y sus respuestas en texto libre son \textbf{imposibles de integrar} automáticamente con un ERP o app.
+\end{alertblock}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 7: ANÁLISIS DEL FALLO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Análisis Detallado del Fallo Arquitectural}
+  \begin{columns}
+    \column{0.33\textwidth}
+    \begin{alertblock}{\centering Problema 1: Memoria}
+      \begin{itemize}
+        \item Cada consulta es un contexto \textbf{nuevo e independiente}
+        \item El nutricionista debe re-ingresar alergias en cada sesión
+        \item Sin historial, el LLM no aprende el perfil del niño
+        \item \textbf{Escala}: 50 niños $\times$ 3 tiempos $\times$ 5 días = inmanejable
+      \end{itemize}
+    \end{alertblock}
+    \column{0.33\textwidth}
+    \begin{alertblock}{\centering Problema 2: Contexto}
+      \begin{itemize}
+        \item El LLM \textbf{no fue entrenado} con normativa JUNJI 2022
+        \item Ignora tablas de composición MINSAL
+        \item Las porciones son genéricas, no para 12--36 meses
+        \item Puede \textbf{alucinar} ingredientes inexistentes en Chile
+      \end{itemize}
+    \end{alertblock}
+    \column{0.33\textwidth}
+    \begin{alertblock}{\centering Problema 3: Integración}
+      \begin{itemize}
+        \item Salida en lenguaje natural, no estructurada
+        \item Imposible conectar con calendario, ERP o sistema de cocina
+        \item Formato \textbf{inconsistente} entre ejecuciones
+        \item Cualquier cambio en el prompt rompe el parseo
+      \end{itemize}
+    \end{alertblock}
+  \end{columns}
+  \vspace{0.5em}
+  \begin{exampleblock}{Solución: tres capas complementarias}
+    \centering
+    \textbf{Memoria} (Redis) \quad + \quad \textbf{Contexto documental} (RAG) \quad + \quad \textbf{Salida estructurada} (JSON + Pydantic)
+  \end{exampleblock}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 8: ARQUITECTURA MODERNA
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Arquitectura Moderna Basada en IA}
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, rounded corners=4pt, minimum width=1.9cm,
+              minimum height=0.70cm, text centered, font=\scriptsize,
+              draw=blue!55, fill=blue!8, drop shadow},
+  boxg/.style={rectangle, rounded corners=4pt, minimum width=1.9cm,
+              minimum height=0.70cm, text centered, font=\scriptsize,
+              draw=green!60!black, fill=green!8, drop shadow},
+  boxo/.style={rectangle, rounded corners=4pt, minimum width=1.9cm,
+              minimum height=0.70cm, text centered, font=\scriptsize,
+              draw=orange!70, fill=orange!10, drop shadow},
+  boxp/.style={rectangle, rounded corners=4pt, minimum width=1.9cm,
+              minimum height=0.70cm, text centered, font=\scriptsize,
+              draw=purple!65, fill=purple!8, drop shadow},
+  arr/.style={-Stealth, thick, draw=gray!65},
+  arrd/.style={-Stealth, thick, draw=purple!55, dashed},
+  lc/.style={rectangle, rounded corners=6pt, draw=blue!45, fill=blue!4, dashed,
+             minimum width=7.5cm, minimum height=1.5cm},
+]
+  % LangChain container
+  \node[lc] at (5.8, 0) {};
+  \node[above, font=\scriptsize\bfseries\color{blue!65}] at (5.8, 0.75) {LangChain LCEL Chain};
+
+  % Nodos dentro de la cadena
+  \node[box] (prompt)  at (3.2, 0.0) {Prompt\\Template};
+  \node[box] (ollama)  at (5.8, 0.0) {Ollama\\LLaMA 3.2};
+  \node[boxg] (parser) at (8.4, 0.0) {JSON\\Parser};
+
+  % Nodos externos
+  \node[boxo] (user)   at (0.5, 0.0) {FastAPI\\(cliente)};
+  \node[boxp] (rag)    at (3.2, -1.8) {RAG\\(Chroma)};
+  \node[boxp] (redis)  at (5.8, -1.8) {Redis\\(historial)};
+  \node[boxg] (output) at (11.2, 0.0) {JSON\\Minuta};
+
+  % Flechas principales
+  \draw[arr] (user)   -- (prompt);
+  \draw[arr] (prompt) -- (ollama);
+  \draw[arr] (ollama) -- (parser);
+  \draw[arr, very thick, draw=green!60!black] (parser) -- (output);
+
+  % Dependencias externas
+  \draw[arrd] (rag)   -- node[right, font=\tiny]{contexto normativo} (prompt);
+  \draw[arrd] (redis) -- node[right, font=\tiny]{sesión previa}      (ollama);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.2em}
+\begin{exampleblock}{Principio fundamental de diseño}
+  El LLM es \textbf{uno de los componentes}, no el sistema completo.
+  LangChain orquesta, RAG provee conocimiento, Redis provee memoria y
+  el parser garantiza la estructura de salida.
+\end{exampleblock}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 9: RAG FUNDAMENTOS
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{RAG: Retrieval-Augmented Generation}
+  \begin{columns}
+    \column{0.55\textwidth}
+    \begin{block}{Definición formal}
+      RAG es un patrón arquitectural que \textbf{aumenta} dinámicamente
+      el contexto del prompt con fragmentos recuperados de una base de
+      conocimiento externa, sin modificar los pesos del modelo.
+    \end{block}
+    \vspace{0.4em}
+    \begin{block}{Aplicado a nuestro caso}
+      \begin{itemize}
+        \item \textbf{Corpus}: normativa JUNJI, tablas MINSAL, guías nutricionales pediátricas
+        \item \textbf{Query}: ``Niño 2 años, alérgico a lactosa, almuerzo lunes''
+        \item \textbf{Recuperación}: Top-4 fragmentos más similares semánticamente
+        \item \textbf{Augmentation}: fragmentos inyectados en el prompt como contexto
+      \end{itemize}
+    \end{block}
+    \column{0.45\textwidth}
+    \begin{exampleblock}{RAG vs. Fine-tuning}
+      \begin{tabular}{lll}
+        \toprule
+        \textbf{Criterio} & \textbf{RAG} & \textbf{Fine-tuning} \\
+        \midrule
+        Actualizable & Sí & No \\
+        Trazable & Sí & No \\
+        GPU entrenamiento & No & Sí \\
+        Costo & Bajo & Alto \\
+        Auditable & Sí & Difícil \\
+        \bottomrule
+      \end{tabular}
+    \end{exampleblock}
+    \vspace{0.4em}
+    \begin{alertblock}{Limitación clave}
+      RAG \textbf{no mejora el razonamiento} del LLM; amplía su
+      base de conocimiento accesible en tiempo de inferencia.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 10: RAG PIPELINE TIKZ
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{RAG: Pipeline de Indexación y Recuperación}
+
+\begin{center}
+\begin{tikzpicture}[
+  doc/.style={rectangle, rounded corners=2pt, minimum width=1.6cm,
+              minimum height=0.58cm, text centered, font=\scriptsize,
+              draw=orange!65, fill=orange!12},
+  proc/.style={rectangle, rounded corners=2pt, minimum width=1.7cm,
+               minimum height=0.58cm, text centered, font=\scriptsize,
+               draw=blue!55, fill=blue!9},
+  db/.style={cylinder, shape border rotate=90, aspect=0.35,
+             minimum width=1.5cm, minimum height=0.72cm,
+             text centered, font=\scriptsize,
+             draw=purple!60, fill=purple!10},
+  arr/.style={-Stealth, thick, draw=gray!65},
+  arrd/.style={-Stealth, dashed, draw=purple!55},
+  lbl/.style={font=\scriptsize\bfseries, text=gray!60},
+]
+  % Fase offline
+  \node[lbl] at (0.8, 2.0) {OFFLINE: Indexación};
+  \node[doc]  (pdf)    at (0.0, 1.3) {PDFs\\Normativa};
+  \node[proc] (chunk)  at (2.2, 1.3) {Chunking\\512 tokens};
+  \node[proc] (embed)  at (4.5, 1.3) {Encoder\\nomic-embed};
+  \node[db]   (chroma) at (6.8, 1.3) {Chroma\\DB};
+
+  \draw[arr] (pdf)   -- (chunk);
+  \draw[arr] (chunk) -- (embed);
+  \draw[arr] (embed) -- node[above, font=\tiny]{vectores float32} (chroma);
+
+  % Fase online
+  \node[lbl] at (0.8, 0.5) {ONLINE: Recuperación e inferencia};
+  \node[doc]  (query)  at (0.0, -0.2) {Consulta\\usuario};
+  \node[proc] (qemb)   at (2.2, -0.2) {Encoder\\(mismo modelo)};
+  \node[proc] (sim)    at (4.5, -0.2) {Similitud\\coseno (MMR)};
+  \node[proc] (topk)   at (6.8, -0.2) {Top-4\\fragmentos};
+  \node[proc] (augp)   at (9.1, -0.2) {Prompt\\aumentado};
+  \node[doc]  (llmout) at (11.4,-0.2) {LLM $\rightarrow$\\JSON};
+
+  \draw[arr] (query) -- (qemb);
+  \draw[arr] (qemb)  -- (sim);
+  \draw[arr] (sim)   -- (topk);
+  \draw[arr] (topk)  -- (augp);
+  \draw[arr, very thick, draw=blue!65] (augp) -- (llmout);
+
+  % Chroma conecta a similitud
+  \draw[arrd] (chroma.south) -- node[right, font=\tiny]{búsqueda ANN} (sim.north);
+\end{tikzpicture}
+\end{center}
+
+\vspace{0.2em}
+\begin{block}{Invariante del embedding}
+  El \textbf{mismo modelo de embedding} debe usarse en la fase de indexación
+  y en la fase de recuperación. Para Ollama: \texttt{nomic-embed-text}
+  (768 dims) o \texttt{mxbai-embed-large} (1024 dims).
+\end{block}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 11: REDIS CONCEPTO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Redis: Memoria Contextual de Sesión}
+  \begin{columns}
+    \column{0.52\textwidth}
+    \begin{block}{Por qué Redis para memoria de LLM}
+      \begin{itemize}
+        \item \textbf{In-memory}: latencia $<$ 1 ms (vs. PostgreSQL $\sim$5--20 ms)
+        \item \textbf{TTL nativo}: sesiones expiran sin cron jobs
+        \item \textbf{Listas}: historial de mensajes como estructura natural
+        \item \textbf{Integración}: LangChain provee \texttt{RedisChatMessageHistory} nativo
+        \item \textbf{Cluster}: escala horizontalmente sin cambios de código
+      \end{itemize}
+    \end{block}
+    \vspace{0.3em}
+    \begin{block}{Esquema de claves}
+      \begin{itemize}
+        \item Clave: \texttt{jardin:\{id\}:nino:\{id\}:sesion:\{fecha\}}
+        \item Tipo: \texttt{LIST} de mensajes JSON serializados
+        \item TTL: 86400 s (24 h) configurable
+        \item Window: últimos N mensajes (presupuesto de tokens)
+      \end{itemize}
+    \end{block}
+    \column{0.48\textwidth}
+    \begin{exampleblock}{Tipos de memoria en LangChain}
+      \begin{tabular}{ll}
+        \toprule
+        \textbf{Clase} & \textbf{Estrategia} \\
+        \midrule
+        \texttt{ConversationBuffer} & Historia completa \\
+        \texttt{ConversationWindow} & Últimas N \\
+        \texttt{ConversationSummary} & Resumen comprimido \\
+        \texttt{ConversationEntity} & Entidades nombradas \\
+        \texttt{VectorStore} & Semántica (RAG) \\
+        \bottomrule
+      \end{tabular}
+    \end{exampleblock}
+    \vspace{0.4em}
+    \begin{alertblock}{Trade-off crítico}
+      Más historial $=$ mejor contexto $=$ \textbf{más tokens} en el prompt
+      $=$ mayor latencia y costo de inferencia.
+      Usar ventana deslizante para controlar el tamaño.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 12: REDIS CÓDIGO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Redis: Implementación con LangChain}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=Memoria con Redis y LCEL]
+from langchain_community.chat_message_histories \
+    import RedisChatMessageHistory
+from langchain_core.runnables.history \
+    import RunnableWithMessageHistory
+
+REDIS_URL = "redis://localhost:6379"
+
+def get_session_history(session_id: str):
+    """Factory: un historial por sesion."""
+    return RedisChatMessageHistory(
+        session_id=session_id,
+        url=REDIS_URL,
+        ttl=86400,       # 24 horas en segundos
+        key_prefix="minuta:",
+    )
+
+# Envolver la cadena base con memoria
+chain_with_history = RunnableWithMessageHistory(
+    base_chain,               # <- cadena LCEL
+    get_session_history,      # <- factory Redis
+    input_messages_key="input",
+    history_messages_key="history",
+)
+
+# Primera consulta: informa alergias
+r1 = chain_with_history.invoke(
+    {"input": "Maria, 2 anios, alergia lactosa"},
+    config={"configurable":
+            {"session_id": "jard01:maria"}},
+)
+# Segunda consulta: Redis provee el contexto
+r2 = chain_with_history.invoke(
+    {"input": "Genera almuerzo del lunes"},
+    config={"configurable":
+            {"session_id": "jard01:maria"}},
+)
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Estructura en Redis}
+      \scriptsize
+      \textbf{Clave}: \texttt{minuta:jard01:maria}\\[0.3em]
+      \textbf{Tipo}: \texttt{LIST} de strings JSON\\[0.4em]
+      Cada elemento:
+      \begin{lstlisting}[style=jsonstyle]
+{
+  "type": "human",
+  "content": "Maria, 2 anios...",
+  "additional_kwargs": {},
+  "response_metadata": {}
+}
+      \end{lstlisting}
+    \end{block}
+    \vspace{0.3em}
+    \begin{exampleblock}{Beneficio directo}
+      En \texttt{r2}, el LLM ya sabe que María es
+      alérgica a la lactosa \textbf{sin que se lo
+      repita el usuario}. Redis lo inyecta
+      automáticamente en el historial del prompt.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 13: LANGCHAIN CONCEPTO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{LangChain: Orquestación de Componentes LLM}
+  \begin{columns}
+    \column{0.55\textwidth}
+    \begin{block}{LangChain Expression Language (LCEL)}
+      LCEL define cadenas como \textbf{composición funcional} de
+      componentes tipo \texttt{Runnable} mediante el operador \texttt{|}:
+      \vspace{0.3em}
+      \[
+        \text{chain} = \underbrace{\text{prompt}}_{\text{Runnable}} \;|\;
+                       \underbrace{\text{llm}}_{\text{Runnable}} \;|\;
+                       \underbrace{\text{parser}}_{\text{Runnable}}
+      \]
+      \vspace{0.1em}
+      Interfaz uniforme: \texttt{invoke()}, \texttt{stream()}, \texttt{batch()},
+      \texttt{astream()}.
+    \end{block}
+    \vspace{0.3em}
+    \begin{block}{Componentes clave para el caso de estudio}
+      \begin{itemize}
+        \item \texttt{ChatPromptTemplate}: plantilla con variables dinámicas
+        \item \texttt{ChatOllama}: wrapper para Ollama local
+        \item \texttt{JsonOutputParser}: garantiza dict Python en la salida
+        \item \texttt{RunnablePassthrough.assign}: enriquece el diccionario de entrada
+        \item \texttt{RunnableWithMessageHistory}: wrapper de memoria
+      \end{itemize}
+    \end{block}
+    \column{0.45\textwidth}
+    \begin{exampleblock}{Por qué no llamar Ollama directamente}
+      \begin{itemize}
+        \item \textbf{Retry}: reintentos automáticos ante fallos
+        \item \textbf{Streaming}: tokens en tiempo real
+        \item \textbf{Tracing}: LangSmith integrado (observabilidad)
+        \item \textbf{Composición}: componentes intercambiables
+        \item \textbf{Portabilidad}: cambiar LLM sin reescribir la lógica de negocio
+        \item \textbf{Paralelismo}: \texttt{RunnableParallel}
+      \end{itemize}
+    \end{exampleblock}
+    \vspace{0.3em}
+    \begin{alertblock}{Versión usada en esta clase}
+      \texttt{langchain $\geq$ 0.3.x} con LCEL nativo.
+      La API antigua (\texttt{LLMChain}) está \textbf{deprecada}.
+      No usar ejemplos de tutoriales anteriores a 2024.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 14: LANGCHAIN CÓDIGO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{LangChain: Construcción de la Cadena LCEL}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=chain\_builder.py -- Cadena LCEL completa]
+from langchain_ollama import ChatOllama
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers \
+    import JsonOutputParser
+from langchain_core.runnables \
+    import RunnablePassthrough
+from operator import itemgetter
+
+# 1. LLM local con salida JSON nativa
+llm = ChatOllama(
+    model="llama3.2",
+    temperature=0.1,
+    format="json",       # grammar-guided sampling
+)
+
+# 2. Plantilla: system + historial + human
+prompt = ChatPromptTemplate.from_messages([
+    ("system", "{system_prompt}"),
+    ("placeholder", "{history}"),
+    ("human",
+     "Contexto normativo:\n{context}\n\n"
+     "Solicitud: {input}"),
+])
+
+# 3. Cadena RAG + Prompt + LLM + Parser
+base_chain = (
+    RunnablePassthrough.assign(
+        context=(
+            itemgetter("input") | retriever
+        )
+    )
+    | prompt
+    | llm
+    | JsonOutputParser()
+)
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Flujo de datos en la cadena}
+      \scriptsize
+      \begin{enumerate}
+        \item \texttt{input}: consulta del nutricionista
+        \item \texttt{assign(context=...)}: RAG recupera documentos
+        \item \texttt{prompt}: ensambla system + history + context + human
+        \item \texttt{llm}: Ollama genera tokens en formato JSON
+        \item \texttt{JsonOutputParser}: convierte string $\rightarrow$ \texttt{dict}
+      \end{enumerate}
+    \end{block}
+    \vspace{0.3em}
+    \begin{exampleblock}{\texttt{format="json"} en Ollama}
+      Instruye a \texttt{llama.cpp} (motor de inferencia)
+      a usar \textbf{grammar-guided sampling}: solo puede
+      generar tokens que mantengan el JSON sintácticamente
+      válido. Garantía a nivel de motor, no de contenido.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 15: PRE-PROMPT ENGINEERING
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Pre-Prompt Engineering: El Rol del Sistema}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=system\_prompt.py]
+SYSTEM_PROMPT = """
+Eres un sistema experto en nutricion infantil 
+certificado segun normativa JUNJI/INTEGRA Chile.
+
+REGLAS ABSOLUTAS (no negociables):
+1. Responde UNICAMENTE en JSON valido.
+2. NUNCA incluyas alimentos del listado de 
+   alergenos del nino.
+3. Las porciones son para ninos de 12-36 meses.
+4. Cada tiempo de comida: 200-350 kcal.
+5. Usa ingredientes disponibles en Chile 
+   con nombre local (ej: "porotos", no "frijoles").
+6. El campo "verificado_alergenos" debe ser true
+   SOLO si revisaste explicitamente cada ingrediente.
+
+ESQUEMA OBLIGATORIO:
+{schema_json}
+
+ANTE INCERTIDUMBRE:
+Responde: {"error": "descripcion", 
+           "alternativas": ["opcion1", "opcion2"]}
+
+NUNCA inventes normativa ni valores nutricionales.
+Cita el documento fuente si el contexto lo provee.
+"""
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Anatomía del system prompt}
+      \begin{enumerate}
+        \item \textbf{Rol}: identidad y certificación
+        \item \textbf{Reglas absolutas}: restricciones inviolables numeradas
+        \item \textbf{Dominio}: parámetros cuantitativos precisos
+        \item \textbf{Esquema}: estructura JSON con variables
+        \item \textbf{Fallback}: comportamiento explícito ante errores
+        \item \textbf{Prohibiciones}: previene alucinaciones
+      \end{enumerate}
+    \end{block}
+    \vspace{0.3em}
+    \begin{alertblock}{Anti-patrón frecuente}
+      \textit{``Responde con información nutricional para niños''} es
+      una sugerencia, no una restricción. El LLM necesita
+      \textbf{reglas explícitas y cuantificadas}, no intenciones vagas.
+    \end{alertblock}
+    \begin{exampleblock}{Técnica: few-shot en el prompt}
+      Incluir 1--2 ejemplos JSON correctos aumenta
+      la adherencia al esquema en $\approx$40\%.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 16: JSON ESTRUCTURADO
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Respuestas Estructuradas: Diseño del Esquema JSON}
+  \begin{columns}
+    \column{0.52\textwidth}
+\begin{lstlisting}[style=jsonstyle, title=Ejemplo de respuesta del sistema]
+{
+  "minuta": {
+    "nino_id": "maria_jard01",
+    "semana": "2026-W25",
+    "alergenos_excluidos": ["lactosa"],
+    "dias": [
+      {
+        "dia": "lunes",
+        "tiempos": [
+          {
+            "nombre": "almuerzo",
+            "plato": "Arroz con pollo al vapor",
+            "ingredientes": [
+              {"nombre": "arroz", "gramos": 60},
+              {"nombre": "pechuga pollo", "gramos": 80},
+              {"nombre": "zanahoria", "gramos": 30},
+              {"nombre": "aceite oliva", "gramos": 5}
+            ],
+            "kcal": 292,
+            "proteinas_g": 24.5,
+            "carbohidratos_g": 38.1,
+            "verificado_alergenos": true,
+            "fuente_normativa": "JUNJI Circ. 73 Tab. 3"
+          }
+        ]
+      }
+    ]
+  }
+}
+\end{lstlisting}
+    \column{0.48\textwidth}
+    \begin{block}{Validación con Pydantic v2}
+\begin{lstlisting}[style=pythonstyle]
+from pydantic import BaseModel, Field
+from typing import List
+
+class Ingrediente(BaseModel):
+    nombre: str
+    gramos: float = Field(gt=0, lt=500)
+
+class TiempoComida(BaseModel):
+    nombre: str
+    plato: str
+    ingredientes: List[Ingrediente]
+    kcal: float = Field(gt=0, lt=600)
+    verificado_alergenos: bool
+
+class Minuta(BaseModel):
+    nino_id: str
+    semana: str
+    alergenos_excluidos: List[str]
+    dias: List[dict]
+\end{lstlisting}
+    \end{block}
+    \vspace{0.2em}
+    \begin{exampleblock}{Integración downstream}
+      Este JSON es directamente consumible por:
+      app móvil de padres, ERP de compras, sistema
+      de cocina (tickets), calendario institucional.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 17: CONFIGURACIÓN BASE
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Implementación: Configuración del Entorno}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=config.py -- Inicialización de componentes]
+# requirements.txt
+# langchain>=0.3.0          langchain-ollama>=0.2.0
+# langchain-chroma>=0.1.0   langchain-community>=0.3.0
+# redis>=5.0.0              pydantic>=2.0.0
+
+from langchain_ollama import (
+    ChatOllama, OllamaEmbeddings
+)
+from langchain_chroma import Chroma
+
+LLM_MODEL   = "llama3.2"
+EMBED_MODEL = "nomic-embed-text"
+CHROMA_DIR  = "./chroma_db"
+REDIS_URL   = "redis://localhost:6379"
+
+# LLM: temperatura baja para respuestas consistentes
+llm = ChatOllama(
+    model=LLM_MODEL,
+    temperature=0.1,
+    format="json",
+    num_ctx=4096,    # ventana de contexto
+)
+
+# Embeddings: mismo modelo en indexacion y consulta
+embeddings = OllamaEmbeddings(model=EMBED_MODEL)
+
+# Vector store persistente
+vectorstore = Chroma(
+    persist_directory=CHROMA_DIR,
+    embedding_function=embeddings,
+    collection_name="normativa_junji",
+)
+retriever = vectorstore.as_retriever(
+    search_type="mmr",
+    search_kwargs={"k": 4, "fetch_k": 20},
+)
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Modelos a descargar en Ollama}
+\begin{lstlisting}[style=shellstyle]
+# Terminal 1: servidor Ollama
+$ ollama serve
+
+# Terminal 2: descargar modelos
+$ ollama pull llama3.2
+$ ollama pull nomic-embed-text
+
+# Verificar
+$ ollama list
+\end{lstlisting}
+    \end{block}
+    \vspace{0.3em}
+    \begin{block}{Requisitos del sistema}
+      \begin{itemize}
+        \item \texttt{ollama} en \texttt{localhost:11434}
+        \item \texttt{redis-server} en \texttt{localhost:6379}
+        \item Python 3.11+, $\geq$ 8 GB RAM
+        \item \texttt{llama3.2:3b-q4\_K\_M}: $\approx$ 2 GB VRAM
+      \end{itemize}
+    \end{block}
+    \begin{exampleblock}{Para producción}
+      Reemplazar \texttt{ChatOllama} por \texttt{ChatOpenAI}
+      o \texttt{ChatAnthropic} sin tocar la cadena.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 18: RAG IMPLEMENTACIÓN
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Implementación: Pipeline RAG con Chroma}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=rag\_indexer.py]
+from langchain_community.document_loaders \
+    import PyPDFLoader, DirectoryLoader
+from langchain.text_splitter \
+    import RecursiveCharacterTextSplitter
+
+def build_vector_store(pdf_dir: str):
+    """Indexa el corpus normativo completo."""
+    loader = DirectoryLoader(
+        pdf_dir, 
+        glob="**/*.pdf",
+        loader_cls=PyPDFLoader
+    )
+    docs = loader.load()
+    print(f"Cargados {len(docs)} documentos")
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=512,
+        chunk_overlap=64,
+        separators=["\n\n", "\n", ". ", " ", ""],
+        length_function=len,
+    )
+    chunks = splitter.split_documents(docs)
+    print(f"Generados {len(chunks)} fragmentos")
+
+    vectorstore = Chroma.from_documents(
+        documents=chunks,
+        embedding=embeddings,
+        persist_directory=CHROMA_DIR,
+        collection_name="normativa_junji",
+    )
+    return vectorstore
+
+# Ejecutar una vez al cambiar el corpus
+if __name__ == "__main__":
+    build_vector_store("./documentos")
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Parámetros de chunking}
+      \begin{tabular}{ll}
+        \toprule
+        \textbf{Parámetro} & \textbf{Valor} \\
+        \midrule
+        \texttt{chunk\_size} & 512 tokens \\
+        \texttt{chunk\_overlap} & 64 tokens \\
+        \texttt{retriever k} & 4 docs \\
+        \texttt{fetch\_k} & 20 candidatos \\
+        \texttt{search\_type} & MMR \\
+        \bottomrule
+      \end{tabular}
+    \end{block}
+    \vspace{0.3em}
+    \begin{exampleblock}{MMR vs Similarity Search}
+      \textbf{Similarity}: máxima relevancia individual.\\[0.2em]
+      \textbf{MMR (Max Marginal Relevance)}: balancea relevancia
+      y \textbf{diversidad} -- evita recuperar 4 fragmentos
+      del mismo párrafo. Recomendado para corpus normativo.
+    \end{exampleblock}
+    \vspace{0.3em}
+    \begin{alertblock}{Corpus mínimo recomendado}
+      Circular JUNJI N$^{\circ}$73 (2022),
+      Tablas MINSAL composición nutricional,
+      Guías alimentarias MINSAL 0--3 años.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 19: CADENA COMPLETA
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Implementación: Cadena LangChain Completa}
+  \begin{columns}
+    \column{0.56\textwidth}
+\begin{lstlisting}[style=pythonstyle, title=minuta\_chain.py -- Sistema completo]
+from langchain_core.runnables \
+    import RunnablePassthrough
+from langchain_core.runnables.history \
+    import RunnableWithMessageHistory
+from operator import itemgetter
+
+def build_minuta_chain(llm, retriever):
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", SYSTEM_PROMPT),
+        ("placeholder", "{history}"),
+        ("human",
+         "Contexto normativo:\n{context}\n\n"
+         "Solicitud: {input}"),
+    ])
+
+    # Cadena RAG + LLM + Parser (sin memoria)
+    base_chain = (
+        RunnablePassthrough.assign(
+            context=(
+                itemgetter("input") | retriever
+            )
+        )
+        | prompt
+        | llm
+        | JsonOutputParser()
+    )
+
+    # Envolver con memoria Redis
+    return RunnableWithMessageHistory(
+        base_chain,
+        get_session_history,
+        input_messages_key="input",
+        history_messages_key="history",
+    )
+
+chain = build_minuta_chain(llm, retriever)
+
+# Invocacion con sesion
+result: dict = chain.invoke(
+    {"input": "Almuerzo lunes para Maria, "
+               "2 anios, alergia lactosa"},
+    config={"configurable":
+            {"session_id": "jard01:maria"}},
+)
+print(result["minuta"]["dias"][0])
+\end{lstlisting}
+    \column{0.44\textwidth}
+    \begin{block}{Capas de la cadena final}
+      \scriptsize
+      \begin{enumerate}
+        \item \textbf{RunnablePassthrough.assign}: enriquece el input
+              con documentos RAG (Chroma)
+        \item \textbf{Prompt}: ensambla system + historial Redis
+              + contexto normativo + consulta
+        \item \textbf{ChatOllama}: inferencia local llama3.2
+              con grammar-guided JSON sampling
+        \item \textbf{JsonOutputParser}: convierte string
+              $\rightarrow$ \texttt{dict} Python tipado
+        \item \textbf{RunnableWithMessageHistory}: persiste
+              conversación en Redis y la inyecta en futuras invocaciones
+      \end{enumerate}
+    \end{block}
+    \vspace{0.3em}
+    \begin{exampleblock}{Resultado de \texttt{result}}
+      \texttt{result} es un \texttt{dict} Python
+      directamente serializable como \texttt{JSONResponse}
+      en FastAPI o persistible en PostgreSQL.
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 20: ACTIVIDAD 1
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Actividad 1: Primera Consulta al Sistema (30 min)}
+  \begin{block}{Objetivo}
+    Levantar el sistema mínimo viable e invocar la cadena para obtener
+    la primera minuta estructurada en JSON.
+  \end{block}
+  \vspace{0.3em}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{exampleblock}{Pasos a seguir}
+      \begin{enumerate}
+        \item Clonar el repositorio base de la clase
+        \item Verificar Ollama activo: \texttt{ollama serve}
+        \item Descargar modelos: \texttt{ollama pull llama3.2} y \texttt{nomic-embed-text}
+        \item \texttt{pip install -r requirements.txt}
+        \item Ejecutar \texttt{python rag\_indexer.py} con los PDFs de prueba
+        \item Invocar la cadena y verificar el JSON de salida con \texttt{print(result)}
+      \end{enumerate}
+    \end{exampleblock}
+    \column{0.5\textwidth}
+    \begin{alertblock}{Criterios de aceptación}
+      \begin{itemize}
+        \item La cadena retorna un \texttt{dict} Python (no string)
+        \item El JSON contiene \texttt{minuta.dias} con $\geq$ 1 día
+        \item Todos los campos del esquema están presentes
+        \item \texttt{verificado\_alergenos == true}
+        \item \texttt{kcal} está en el rango 200--350
+      \end{itemize}
+    \end{alertblock}
+    \vspace{0.4em}
+    \begin{block}{Entregable}
+      Captura del JSON generado para la consulta:\\
+      \textit{``Niño 18 meses, sin alergias, almuerzo martes''}
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 21: ACTIVIDAD 2
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Actividad 2: Memoria Contextual con Redis (25 min)}
+  \begin{block}{Objetivo}
+    Verificar empíricamente que el sistema mantiene contexto entre
+    consultas mediante Redis sin que el usuario repita información.
+  \end{block}
+  \vspace{0.3em}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{exampleblock}{Secuencia de consultas}
+      \textbf{Consulta 1} (session\_id: \texttt{test:pedro}):
+      \begin{quote}
+        \scriptsize\itshape
+        ``Pedro tiene 2 años y es alérgico a los mariscos
+        y al huevo. Genera su desayuno del lunes.''
+      \end{quote}
+      \vspace{0.4em}
+      \textbf{Consulta 2} (mismo session\_id, sin mencionar alergias):
+      \begin{quote}
+        \scriptsize\itshape
+        ``Ahora genera su almuerzo del lunes.
+        Respeta todas sus restricciones alimentarias.''
+      \end{quote}
+      \vspace{0.4em}
+      \textbf{Consulta 3} (session\_id \textbf{diferente}: \texttt{test:pedro2}):
+      \begin{quote}
+        \scriptsize\itshape
+        ``Genera el almuerzo del lunes.''
+      \end{quote}
+    \end{exampleblock}
+    \column{0.5\textwidth}
+    \begin{alertblock}{¿Qué verificar?}
+      \begin{enumerate}
+        \item Consulta 2: el almuerzo NO contiene mariscos ni huevo
+        \item Verificar en Redis:\\
+              \texttt{redis-cli LRANGE test:pedro 0 -1}
+        \item Consulta 3 (nueva sesión): el LLM pide más contexto o genera minuta genérica
+      \end{enumerate}
+    \end{alertblock}
+    \vspace{0.3em}
+    \begin{block}{Pregunta de análisis}
+      ¿Por qué la consulta 3 falla o produce resultados distintos?
+      ¿Qué implica esto para el diseño del sistema en producción?
+      Documenta la diferencia de comportamiento.
+    \end{block}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 22: ACTIVIDAD 3
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}[fragile]{Actividad 3: Minuta Semanal con Validación Pydantic (40 min)}
+  \begin{block}{Objetivo}
+    Extender la cadena para generar una minuta completa de 5 días
+    con validación estricta mediante Pydantic v2.
+  \end{block}
+  \vspace{0.3em}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{exampleblock}{Tareas de implementación}
+      \begin{enumerate}
+        \item Crear los modelos Pydantic completos: \texttt{Ingrediente}, \texttt{TiempoComida}, \texttt{DiaSemana}, \texttt{MinutaSemanal}
+        \item Reemplazar \texttt{JsonOutputParser} por \texttt{PydanticOutputParser}
+        \item Inyectar el formato Pydantic en el system prompt con \texttt{parser.get\_format\_instructions()}
+        \item Implementar \textbf{retry automático}: si \texttt{ValidationError}, reenviar el error al LLM para autocorrección
+        \item Persistir la minuta validada en Redis con TTL de 7 días
+      \end{enumerate}
+    \end{exampleblock}
+    \column{0.5\textwidth}
+    \begin{block}{Hint: OutputFixingParser}
+\begin{lstlisting}[style=pythonstyle]
+from langchain.output_parsers \
+    import OutputFixingParser
+
+fixing_parser = OutputFixingParser\
+    .from_llm(
+        parser=pydantic_parser,
+        llm=llm,
+        max_retries=3,
+    )
+\end{lstlisting}
+    \end{block}
+    \vspace{0.2em}
+    \begin{alertblock}{Desafío avanzado (opcional)}
+      Implementar \textbf{doble verificación}: después de obtener el JSON,
+      usar un segundo LLM call para auditar que ningún ingrediente contenga
+      el alérgeno declarado.\\[0.3em]
+      Reflexiona: ¿es esto RAG, cadena o agente?
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 23: PREGUNTAS DE REFLEXIÓN
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Preguntas de Reflexión}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Diseño arquitectural}
+      \begin{enumerate}
+        \item Si la normativa JUNJI se actualiza en marzo 2027,
+              ¿qué componente del sistema debe modificarse y cómo
+              se minimiza el impacto en los demás?
+        \vspace{0.35em}
+        \item ¿Es suficiente \texttt{format=``json''} en Ollama para
+              garantizar JSON válido en producción? ¿Qué casos de borde
+              pueden romper esto incluso con grammar-guided sampling?
+        \vspace{0.35em}
+        \item ¿Cómo diseñarías el sistema para 500 niños simultáneos?
+              ¿Qué componentes escalan horizontalmente y cuáles son
+              el cuello de botella?
+      \end{enumerate}
+    \end{block}
+    \column{0.5\textwidth}
+    \begin{exampleblock}{Evaluación crítica}
+      \begin{enumerate}
+        \setcounter{enumi}{3}
+        \item El nutricionista reporta: \textit{``El sistema generó una
+              receta que cumple el esquema JSON pero usa palmito, que
+              no está en el proveedor del jardín''}. ¿Qué capa del
+              sistema falló? ¿Cómo se previene arquitecturalmente?
+        \vspace{0.35em}
+        \item ¿Cuál es la diferencia fundamental entre esta cadena
+              y un \textbf{agente LLM}? ¿Qué necesitaría agregarse
+              para convertirla en un agente reactivo con herramientas?
+        \vspace{0.35em}
+        \item ¿Es ético usar IA para tomar decisiones sobre la
+              alimentación de niños menores de 3 años sin supervisión
+              humana en el loop de aprobación?
+      \end{enumerate}
+    \end{exampleblock}
+  \end{columns}
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 24: ARQUITECTURA FINAL TikZ
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Arquitectura Final Integrada del Sistema}
+
+\begin{center}
+\begin{tikzpicture}[
+  b/.style={rectangle, rounded corners=3pt, minimum width=1.65cm,
+            minimum height=0.52cm, text centered,
+            font=\fontsize{5.8}{7}\selectfont,
+            draw=blue!55, fill=blue!8},
+  bg/.style={rectangle, rounded corners=3pt, minimum width=1.65cm,
+             minimum height=0.52cm, text centered,
+             font=\fontsize{5.8}{7}\selectfont,
+             draw=green!55!black, fill=green!8},
+  bo/.style={rectangle, rounded corners=3pt, minimum width=1.65cm,
+             minimum height=0.52cm, text centered,
+             font=\fontsize{5.8}{7}\selectfont,
+             draw=orange!65, fill=orange!10},
+  bp/.style={rectangle, rounded corners=3pt, minimum width=1.65cm,
+             minimum height=0.52cm, text centered,
+             font=\fontsize{5.8}{7}\selectfont,
+             draw=purple!60, fill=purple!9},
+  br/.style={rectangle, rounded corners=3pt, minimum width=1.65cm,
+             minimum height=0.52cm, text centered,
+             font=\fontsize{5.8}{7}\selectfont,
+             draw=red!55, fill=red!8},
+  arr/.style={-Stealth, draw=gray!60, thick},
+  arrd/.style={-Stealth, draw=purple!55, dashed, thick},
+  grp/.style={rectangle, rounded corners=5pt,
+              draw=gray!40, fill=gray!3, dashed},
+  lbl/.style={font=\fontsize{5.5}{6.5}\selectfont\bfseries, text=gray!60},
+]
+
+  % ── Capa corpus ────────────────────────────────────────────────
+  \node[lbl] at (0.6, 3.15) {CORPUS NORMATIVO};
+  \node[bo] (pdf1)  at (-0.1, 2.55) {JUNJI\\Circ. 73};
+  \node[bo] (pdf2)  at ( 1.7, 2.55) {MINSAL\\Tablas};
+  \node[b]  (chunk) at ( 3.5, 2.55) {Chunking\\512 tok};
+  \node[b]  (emb)   at ( 5.4, 2.55) {Embeddings\\nomic-embed};
+  \node[bp] (chroma)at ( 7.3, 2.55) {Chroma DB\\vectores};
+
+  \draw[arr] (pdf1)  -- (chunk);
+  \draw[arr] (pdf2)  -- (chunk);
+  \draw[arr] (chunk) -- (emb);
+  \draw[arr] (emb)   -- (chroma);
+
+  % ── Capa cliente ───────────────────────────────────────────────
+  \node[lbl] at (0.3, 1.65) {CLIENTE};
+  \node[bg] (api)    at (-0.1, 1.05) {FastAPI\\POST /minuta};
+  \node[bg] (schema) at ( 1.7, 1.05) {Pydantic\\validación};
+
+  \draw[arr] (api) -- (schema);
+
+  % ── LangChain chain ────────────────────────────────────────────
+  \begin{scope}[on background layer]
+    \node[grp, fit={(3.0,0.62)(9.6,1.52)}] {};
+  \end{scope}
+  \node[lbl] at (4.3, 1.52) {LANGCHAIN LCEL CHAIN};
+
+  \node[b]  (rpass)  at ( 3.5, 1.05) {Runnable\\Passthrough};
+  \node[b]  (prompt) at ( 5.4, 1.05) {Prompt\\Template};
+  \node[br] (ollama) at ( 7.3, 1.05) {Ollama\\LLaMA 3.2};
+  \node[bg] (jparse) at ( 9.1, 1.05) {JSON\\Parser};
+
+  \draw[arr] (schema) -- (rpass);
+  \draw[arr] (rpass)  -- (prompt);
+  \draw[arr] (prompt) -- (ollama);
+  \draw[arr] (ollama) -- (jparse);
+
+  % ── Memoria ────────────────────────────────────────────────────
+  \node[lbl] at (0.3, 0.1) {MEMORIA};
+  \node[bp] (redis) at (1.7, -0.42) {Redis\\SessionHistory};
+
+  \draw[arrd] (redis.east) to[bend right=12]
+              node[below, font=\fontsize{4.5}{5}\selectfont]{historial sesión}
+              (prompt.south);
+  \draw[arrd] (api.south)  --
+              node[left, font=\fontsize{4.5}{5}\selectfont]{session\_id}
+              (redis.north);
+
+  % ── RAG retriever ──────────────────────────────────────────────
+  \draw[arrd, purple!60] (chroma.south) to[bend left=8]
+       node[right, font=\fontsize{4.5}{5}\selectfont]{top-4 docs}
+       (rpass.north);
+
+  % ── Output ─────────────────────────────────────────────────────
+  \node[lbl] at (10.6, 1.65) {OUTPUT};
+  \node[bg] (out)  at (10.9, 1.05) {JSON\\Minuta};
+  \node[bg] (pyd2) at (10.9, 0.25) {Pydantic\\v2 check};
+  \node[bo] (db)   at (10.9,-0.42) {PostgreSQL\\/ Redis TTL7d};
+
+  \draw[arr, very thick, draw=green!55!black] (jparse) -- (out);
+  \draw[arr] (out)  -- (pyd2);
+  \draw[arr] (pyd2) -- (db);
+
+\end{tikzpicture}
+\end{center}
+
+\end{frame}
+
+% ═══════════════════════════════════════════════════════════════════
+% DIAPOSITIVA 25: CONCLUSIONES
+% ═══════════════════════════════════════════════════════════════════
+\begin{frame}{Conclusiones}
+  \begin{columns}
+    \column{0.5\textwidth}
+    \begin{block}{Lo que construimos hoy}
+      \begin{itemize}
+        \item Un sistema de software real donde el \textbf{LLM es un componente}, no la aplicación completa
+        \item Pipeline RAG con corpus normativo actualizable sin reentrenar el modelo
+        \item Memoria de sesión persistente y con expiración automática via Redis
+        \item Salidas JSON validadas con Pydantic, \textbf{directamente consumibles} por APIs externas
+        \item Una cadena LCEL reemplazable (cambiar LLM sin reescribir la lógica)
+      \end{itemize}
+    \end{block}
+    \vspace{0.3em}
+    \begin{exampleblock}{La narrativa completada}
+      \centering
+      \textbf{LLM solo}
+      $\;\longrightarrow\;$
+      \textbf{LLM + RAG}
+      $\;\longrightarrow\;$
+      \textbf{Sistema inteligente}
+      $\;\longrightarrow\;$
+      \textbf{Aplicación empresarial}
+    \end{exampleblock}
+    \column{0.5\textwidth}
+    \begin{block}{Próximas clases}
+      \begin{itemize}
+        \item \textbf{Clase 10}: Agentes LLM -- de cadenas a agentes reactivos con LangGraph
+        \item \textbf{Clase 11}: Evaluación -- LLM-as-Judge, RAGAS, benchmarks de RAG
+        \item \textbf{Clase 12}: Observabilidad -- LangSmith, trazas en producción, costos
+        \item \textbf{Clase 13}: Seguridad -- prompt injection, PII, guardrails y jailbreaking
+      \end{itemize}
+    \end{block}
+    \vspace{0.3em}
+    \begin{alertblock}{El principio central de esta clase}
+      Un LLM sin contexto de dominio es un asistente genérico.
+      Un LLM con RAG + memoria + restricciones estructurales
+      es un \textbf{sistema inteligente listo para producción}.
+    \end{alertblock}
+  \end{columns}
+\end{frame}
+
+\end{document}

@@ -1,0 +1,500 @@
+\documentclass[12pt,a4paper]{article}
+
+% ─── Codificación y lenguaje ─────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+
+% ─── Diseño de página ────────────────────────────────────────────────────────
+\usepackage[top=2.4cm, bottom=2.8cm, left=2.8cm, right=2.8cm]{geometry}
+\usepackage{parskip}
+\usepackage{microtype}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textit{Actividad formativa --- Minutas IA}}
+\fancyhead[R]{\small\textit{Ingeniería Informática}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Tipografía ──────────────────────────────────────────────────────────────
+\usepackage{lmodern}
+\usepackage{setspace}
+\setstretch{1.12}
+
+% ─── Colores y cajas ─────────────────────────────────────────────────────────
+\usepackage{xcolor}
+\definecolor{azulprimario}{RGB}{20, 70, 140}
+\definecolor{azulclaro}{RGB}{230, 240, 255}
+\definecolor{verdeok}{RGB}{10, 110, 50}
+\definecolor{verdeclaro}{RGB}{230, 248, 236}
+\definecolor{rojowarn}{RGB}{160, 30, 20}
+\definecolor{rojoclaro}{RGB}{255, 235, 230}
+\definecolor{naranjainf}{RGB}{160, 90, 0}
+\definecolor{naranjaclaro}{RGB}{255, 245, 220}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.94}
+\definecolor{codegreen}{rgb}{0,0.52,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.5,0,0.62}
+\definecolor{codeblue}{rgb}{0.0,0.18,0.72}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+
+\newtcolorbox{conceptbox}[1]{
+  title={\textbf{#1}},
+  colback=azulclaro, colframe=azulprimario,
+  fonttitle=\color{white}, coltitle=white,
+  colbacktitle=azulprimario,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={rounded corners, size=small},
+  rounded corners, breakable, left=6pt, right=6pt,
+  top=8pt, bottom=6pt,
+}
+
+\newtcolorbox{warnbox}[1]{
+  title={\textbf{#1}},
+  colback=rojoclaro, colframe=rojowarn,
+  fonttitle=\color{white}, coltitle=white,
+  colbacktitle=rojowarn,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={rounded corners, size=small},
+  rounded corners, breakable, left=6pt, right=6pt,
+  top=8pt, bottom=6pt,
+}
+
+\newtcolorbox{examplebox}[1]{
+  title={\textbf{#1}},
+  colback=verdeclaro, colframe=verdeok,
+  fonttitle=\color{white}, coltitle=white,
+  colbacktitle=verdeok,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={rounded corners, size=small},
+  rounded corners, breakable, left=6pt, right=6pt,
+  top=8pt, bottom=6pt,
+}
+
+\newtcolorbox{infobox}[1]{
+  title={\textbf{#1}},
+  colback=naranjaclaro, colframe=naranjainf,
+  fonttitle=\color{white}, coltitle=white,
+  colbacktitle=naranjainf,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={rounded corners, size=small},
+  rounded corners, breakable, left=6pt, right=6pt,
+  top=8pt, bottom=6pt,
+}
+
+\newtcolorbox{experbox}[1]{
+  title={\textbf{#1}},
+  colback=white, colframe=azulprimario!60,
+  fonttitle=\color{azulprimario},
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={rounded corners, size=small},
+  rounded corners, breakable, left=6pt, right=6pt,
+  top=8pt, bottom=6pt,
+}
+
+% ─── Código y tablas ─────────────────────────────────────────────────────────
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage[hidelinks, colorlinks=true,
+            linkcolor=azulprimario,
+            urlcolor=azulprimario]{hyperref}
+
+\lstdefinestyle{shellstyle}{
+  backgroundcolor=\color{backcolour},
+  basicstyle=\ttfamily\small,
+  breaklines=true, frame=single,
+  rulecolor=\color{black!25},
+  showstringspaces=false, xleftmargin=14pt,
+}
+
+\lstdefinestyle{envstyle}{
+  backgroundcolor=\color{backcolour},
+  basicstyle=\ttfamily\small,
+  breaklines=true, frame=single,
+  rulecolor=\color{black!25},
+  showstringspaces=false, xleftmargin=14pt,
+}
+
+\usepackage{titlesec}
+\titleformat{\section}
+  {\Large\bfseries\color{azulprimario}}{\thesection.}{0.6em}{}[\vspace{-0.4em}\rule{\linewidth}{0.5pt}]
+\titleformat{\subsection}
+  {\large\bfseries\color{azulprimario!80!black}}{\thesubsection.}{0.5em}{}
+
+\newcommand{\checkbox}{\fbox{\rule{0pt}{1.5ex}\rule{1.5ex}{0pt}}}
+
+% ─── Documento ─────────────────────────────────────────────────────────────────
+\title{
+  \vspace{-0.8cm}
+  {\large Ingeniería Informática --- Actividad formativa}\\[0.4em]
+  {\LARGE\bfseries\color{azulprimario}
+    Experimentación guiada con Minutas IA}\\[0.3em]
+  {\normalsize LLM \textbullet{} RAG \textbullet{} Redis \textbullet{}
+   LangChain \textbullet{} Ollama}
+}
+\author{IA Embebida en Sistemas Computacionales}
+\date{Semestre I --- 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy}
+
+\begin{infobox}{Ficha de la actividad}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Asignatura} & IA Embebida en Sistemas Computacionales \\
+\textbf{Duración} & 50--60 minutos \\
+\textbf{Modalidad} & Individual o parejas \\
+\textbf{Tipo} & Formativa (entregable breve, sin nota numérica) \\
+\bottomrule
+\end{tabular}
+\end{infobox}
+
+\section{Propósito}
+
+Profundizar en la arquitectura entregada (LLM + RAG + Redis + LangChain) mediante
+\textbf{experimentación controlada}, considerando que \textbf{no todos los equipos
+tienen la misma capacidad} para ejecutar modelos de IA locales.
+
+Al finalizar deberías poder explicar, con evidencia de tu propia prueba:
+
+\begin{enumerate}[noitemsep]
+  \item Qué aporta el \textbf{RAG} frente a un LLM aislado.
+  \item Qué aporta \textbf{Redis} como memoria de sesión.
+  \item Cómo el \textbf{pre-prompt} y el \textbf{tamaño del modelo} afectan
+        calidad, latencia y consumo de recursos.
+  \item Qué \textit{trade-offs} harías al desplegar este sistema en un jardín
+        infantil real.
+\end{enumerate}
+
+\section{Antes de empezar}
+
+\subsection{Requisitos mínimos}
+
+\begin{itemize}[noitemsep]
+  \item Docker Desktop o Docker Engine + Compose v2.
+  \item Conexión a internet (solo la primera vez, para imágenes y modelos).
+  \item Repositorio clonado con \texttt{make up} funcional, o acceso al servidor
+        del curso (Perfil R).
+\end{itemize}
+
+\subsection{Panel de trabajo}
+
+Abre \url{http://localhost:3000} y ubica:
+
+\begin{itemize}[noitemsep]
+  \item Formulario de generación de minutas.
+  \item Bloque \textbf{Pre-prompt y vectorización RAG} (parte inferior).
+  \item Presets de actividades (María, Pedro consulta 1 y 2).
+\end{itemize}
+
+\section{Paso 0: Elige tu perfil de hardware (5 min)}
+
+No todos corren el mismo modelo. Elige un perfil según tu equipo \textbf{antes}
+de los experimentos.
+
+\begin{table}[h]
+\centering
+\caption{Perfiles de hardware para el curso}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Perfil} & \textbf{RAM aprox.} & \textbf{Modelo LLM} & \textbf{Comando} \\
+\midrule
+L --- Ligero & 8 GB, sin GPU & \texttt{llama3.2:1b} & \texttt{make perfil-ligero} \\
+M --- Medio  & 16 GB & \texttt{llama3.2} (3B) & \texttt{make perfil-medio} \\
+A --- Alto   & 16+ GB + GPU / Apple Silicon & \texttt{llama3.1:8b} & \texttt{make perfil-alto} \\
+R --- Remoto & PC débil o sin Docker & Ollama del laboratorio & Sección~\ref{sec:perfil-r} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Después de elegir perfil:
+
+\begin{lstlisting}[style=shellstyle]
+make perfil-ligero   # o perfil-medio / perfil-alto
+docker compose down
+make up
+make ready
+\end{lstlisting}
+
+Anota en tu bitácora:
+
+\begin{itemize}[noitemsep]
+  \item Perfil elegido: \rule{6cm}{0.4pt}
+  \item Modelo activo (panel «Estado del sistema» o \texttt{make ready}):
+        \rule{4cm}{0.4pt}
+  \item Tiempo de la \textbf{primera} respuesta del LLM (s):
+        \rule{2cm}{0.4pt}
+\end{itemize}
+
+\begin{warnbox}{Nota docente}
+El objetivo no es comparar notas por velocidad, sino \textbf{razonar sobre
+trade-offs} con el hardware disponible.
+\end{warnbox}
+
+\section{Experimento 1: ¿Qué aporta el RAG? (12 min)}
+
+\begin{experbox}{Experimento 1 --- RAG}
+\subsection*{Hipótesis}
+\textit{Sin contexto documental, el LLM ignora la normativa JUNJI/MINSAL y responde
+de forma genérica.}
+
+\subsection*{Procedimiento}
+\begin{enumerate}[noitemsep]
+  \item En el panel inferior, revisa el \textbf{pre-prompt} y al menos
+        \textbf{2 fragmentos} del corpus indexado.
+  \item Usa el preset \textbf{«Actividad 1 --- María (lactosa)»}.
+  \item Pulsa \textbf{«Vista previa RAG»} y observa el embedding de la consulta
+        y los fragmentos recuperados (\texttt{similarity\_score}).
+  \item Genera la minuta y compara el resultado con los fragmentos recuperados.
+  \item Abre \texttt{documentos\_normativos/normativa\_junji\_demo.txt} y verifica
+        si algún fragmento menciona: kcal 200--350, alérgenos o ingredientes chilenos.
+\end{enumerate}
+
+\subsection*{Registro (completa en tu entrega)}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{7.2cm}p{6.5cm}@{}}
+\toprule
+\textbf{Pregunta} & \textbf{Tu observación} \\
+\midrule
+¿Cuántos fragmentos recuperó el retriever? & \\[1.8ex]
+¿Algún fragmento menciona kcal o alérgenos? Cita una línea. & \\[1.8ex]
+¿El plato generado respeta la lactosa? & \\[1.8ex]
+¿El campo \texttt{fuente\_normativa} aparece? ¿Es creíble? & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Pregunta de reflexión}
+Si mañana se publica una nueva circular JUNJI, \textbf{¿qué componente actualizas
+sin reentrenar el LLM?} Justifica en 2--3 líneas.
+\end{experbox}
+
+\section{Experimento 2: Memoria con Redis (10 min)}
+
+\begin{experbox}{Experimento 2 --- Redis}
+\subsection*{Hipótesis}
+\textit{Con el mismo \texttt{session\_id}, el sistema no debería obligar a repetir
+las alergias en cada consulta.}
+
+\subsection*{Procedimiento}
+\begin{enumerate}[noitemsep]
+  \item Preset \textbf{«Actividad 2 --- Pedro consulta 1»} $\rightarrow$ Generar minuta.
+  \item Preset \textbf{«Actividad 2 --- Pedro consulta 2 (memoria)»} $\rightarrow$
+        Generar minuta \textbf{sin} editar el \texttt{session\_id}.
+  \item (Opcional) Repite la consulta 2 con \texttt{session\_id} =
+        \texttt{test:pedro-nuevo} y compara.
+\end{enumerate}
+
+\subsection*{Verificación técnica (elige una)}
+\begin{lstlisting}[style=shellstyle, caption={Opción A: Redis CLI}]
+# Opcion A: Redis CLI
+docker compose exec redis redis-cli LRANGE minuta:test:pedro 0 -1
+
+# Opcion B: observacion en el panel de historial (UI)
+\end{lstlisting}
+
+\subsection*{Registro}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{5.5cm}cc@{}}
+\toprule
+\textbf{Escenario} & \textbf{¿Excluyó huevo/mariscos?} & \textbf{¿Por qué?} \\
+\midrule
+Consulta 2, mismo \texttt{session\_id} & & \\[1.5ex]
+Consulta 2, \texttt{session\_id} distinto (opc.) & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Pregunta de reflexión}
+¿Redis almacena «inteligencia» o solo \textbf{historial de mensajes}? ¿Qué pasaría
+si el TTL pasara de 24 h a 7 días en un jardín con 80 niños?
+\end{experbox}
+
+\section{Experimento 3: Pre-prompt y calidad del JSON (10 min)}
+
+\begin{experbox}{Experimento 3 --- Pre-prompt y JSON}
+\subsection*{Procedimiento}
+\begin{enumerate}[noitemsep]
+  \item Lee el pre-prompt en el panel inferior (reglas 1--9).
+  \item Genera una minuta con esta consulta:
+        \begin{quote}
+          \textit{«Niño de 18 meses, sin alergias. Once del miércoles con
+          ingredientes de temporada.»}
+        \end{quote}
+  \item Abre \textbf{«Ver JSON completo»} en el resultado.
+  \item Marca con \checkbox{} (sí) o vacío (no):
+\end{enumerate}
+
+\begin{itemize}[noitemsep]
+  \item[\checkbox] \texttt{nino\_id} es un valor real (no \texttt{"string"})
+  \item[\checkbox] \texttt{generada\_en} es fecha ISO válida
+  \item[\checkbox] \texttt{kcal} está entre 200 y 350
+  \item[\checkbox] \texttt{verificado\_alergenos} es coherente con la consulta
+  \item[\checkbox] Ingredientes con nombres locales (porotos, choclo, etc.)
+\end{itemize}
+
+\subsection*{Variante según perfil de hardware}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lp{9.5cm}@{}}
+\toprule
+\textbf{Perfil} & \textbf{Variante extra} \\
+\midrule
+L & Si tarda $>$90 s o falla: \texttt{RETRIEVER\_K=1} en \texttt{.env}, reinicia API. \\
+M & Sin variante; registra tiempo de respuesta. \\
+A & Prueba \texttt{LLM\_TEMPERATURE=0.5} y compara creatividad vs.\ consistencia. \\
+R & Mismo flujo en servidor remoto; anota latencia de red. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Pregunta de reflexión}
+¿Basta con \texttt{format=json} en Ollama para garantizar un JSON \textbf{válido
+para producción}? Menciona al menos un caso que Pydantic podría rechazar.
+\end{experbox}
+
+\section{Experimento 4: Trade-off de modelos (8 min)}
+
+\begin{experbox}{Experimento 4 --- Trade-offs}
+\textbf{Objetivo:} relacionar potencia del equipo con calidad y latencia, sin
+competir por hardware.
+
+\subsection*{Procedimiento}
+\begin{enumerate}[noitemsep]
+  \item Anota tu perfil y modelo actual.
+  \item Si tu equipo y el docente lo autorizan, cambia de perfil (ej.\ M $\rightarrow$ L)
+        y repite la consulta de María.
+  \item Completa la tabla (si no puedes cambiar de perfil, completa solo tu fila):
+\end{enumerate}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Métrica} & \textbf{Mi perfil} & \textbf{Otro perfil (opc.)} \\
+\midrule
+Modelo & & \\[1.2ex]
+Tiempo 1.\textsuperscript{a} respuesta (s) & & \\[1.2ex]
+¿JSON válido a la 1.\textsuperscript{a}? & & \\[1.2ex]
+¿Plato nutricionalmente plausible? & & \\[1.2ex]
+¿Alucinó ingredientes raros? & & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection*{Pregunta de reflexión}
+En producción, ¿siempre conviene el modelo más grande? Nombra \textbf{dos criterios}
+además de la calidad del texto (costo, latencia, privacidad, energía, etc.).
+\end{experbox}
+
+\section{Entregable formativo (máx.\ 1 página)}
+
+Sube un PDF con:
+
+\begin{enumerate}[noitemsep]
+  \item \textbf{Perfil de hardware} usado y modelo Ollama activo.
+  \item \textbf{Tablas de registro} de los experimentos 1 y 2 (aunque haya fallos).
+  \item \textbf{Respuestas breves} (3--5 líneas) a \textbf{dos} preguntas de reflexión
+        a elección.
+  \item \textbf{Captura} del panel «Pre-prompt y vectorización RAG» con al menos un
+        fragmento recuperado.
+  \item \textbf{Un problema real} detectado y \textbf{qué capa} falló: LLM, RAG,
+        Redis, prompt o validación.
+\end{enumerate}
+
+\begin{examplebox}{Si no pudiste ejecutar localmente}
+Indica uso del \textbf{Perfil R} y adjunta capturas del servidor del curso con tu
+\texttt{session\_id} identificable.
+\end{examplebox}
+
+\section{Perfil R --- Estudiantes sin PC potente}
+\label{sec:perfil-r}
+
+Si tu laptop no puede ejecutar Ollama de forma razonable:
+
+\begin{enumerate}[noitemsep]
+  \item Solicita al docente la URL del servidor (ej.\
+        \texttt{http://lab-ia.universidad.cl:11434}).
+  \item Crea un archivo \texttt{.env} local:
+\end{enumerate}
+
+\begin{lstlisting}[style=envstyle]
+OLLAMA_BASE_URL=http://<servidor-del-curso>:11434
+LLM_MODEL=llama3.2:1b
+LLM_NUM_CTX=2048
+RETRIEVER_K=2
+\end{lstlisting}
+
+\begin{enumerate}[noitemsep]
+  \setcounter{enumi}{2}
+  \item Levanta API + Redis + Web según indique el docente, o usa el frontend del
+        laboratorio.
+  \item En la entrega documenta: \textbf{«Ejecución remota --- sin inferencia local»}.
+\end{enumerate}
+
+\subsection{Alternativa mínima sin Docker}
+
+Observa la demo del docente y completa los experimentos 1 y 3 \textbf{teóricamente},
+citando capturas del proyector y \texttt{normativa\_junji\_demo.txt}. El docente
+puede aceptar esta vía solo si quedó sin equipo; prioriza siempre el Perfil L.
+
+\section{Criterios de logro (autoevaluación)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lc@{}}
+\toprule
+\textbf{Criterio} & \textbf{Lo logré} \\
+\midrule
+Identifiqué qué hace el RAG en la arquitectura & \checkbox \\[0.8ex]
+Demostré memoria de sesión con Redis & \checkbox \\[0.8ex]
+Interpreté el pre-prompt y los fragmentos vectorizados & \checkbox \\[0.8ex]
+Relacioné tamaño de modelo con latencia/calidad & \checkbox \\[0.8ex]
+Distinguí fallo de LLM vs.\ validación/RAG & \checkbox \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Para seguir explorando (opcional)}
+
+\begin{itemize}[noitemsep]
+  \item Agrega un párrafo a \texttt{documentos\_normativos/} y ejecuta
+        \textbf{Reindexar RAG}.
+  \item Modifica una regla en \texttt{app/system\_prompt.py}, reconstruye la API
+        y observa el cambio.
+  \item Compara \texttt{RETRIEVER\_K=2} vs.\ \texttt{RETRIEVER\_K=6} y mide latencia.
+\end{itemize}
+
+\section{Comandos de referencia rápida}
+
+\begin{lstlisting}[style=shellstyle]
+make perfil-ligero    # 8 GB RAM
+make perfil-medio     # 16 GB RAM (default clase)
+make perfil-alto      # equipos potentes
+make up && make ready
+make web-dev          # frontend en desarrollo
+docker compose logs -f api
+\end{lstlisting}
+
+\vfill
+\begin{center}
+\small
+\textit{Actividad alineada con el caso de estudio: sistema de minutas alimentarias
+JUNJI --- Ingeniería Informática.}
+\end{center}
+
+\end{document}
