@@ -1,0 +1,49 @@
+PREGUNTAS FRECUENTES — Soporte Técnico Interno
+Versión 2.3 — Base de Conocimiento
+
+=== DOCKER ===
+P: ¿Cómo veo los logs de un contenedor que se detuvo?
+R: docker logs <container_id>. Si ya fue eliminado, revisar docker compose logs en el directorio del proyecto.
+
+P: ¿Cómo libero espacio de Docker?
+R: docker system prune -a elimina contenedores detenidos, redes no usadas e imágenes sin referencia. Confirmar antes en producción.
+
+P: ¿Por qué mi contenedor reinicia constantemente?
+R: Suele ser error en el comando de arranque o dependencia no disponible. Revisar: docker logs <id> --tail 50 y docker inspect <id> | grep -A5 RestartCount.
+
+=== LINUX ===
+P: ¿Cómo sé qué está usando todo el disco?
+R: df -h para particiones. du -sh /* para uso por directorio raíz. Revisar /var/log y /tmp primero.
+
+P: Olvidé mi contraseña de sudo, ¿qué hago?
+R: Contactar a Soporte Nivel 2 / Administración de Sistemas. No se resetea contraseña root por chat.
+
+P: ¿Cómo cambio el timezone del servidor?
+R: sudo timedatectl set-timezone America/Santiago. Verificar con timedatectl.
+
+=== GIT ===
+P: Hice commit en la rama equivocada, ¿cómo lo arreglo?
+R: git log para ver el hash. git checkout rama-correcta. git cherry-pick <hash>. En rama equivocada: git reset --hard HEAD~1 (solo si no se hizo push).
+
+P: ¿Cómo actualizo mi rama con los cambios de main?
+R: git fetch origin. git checkout mi-rama. git merge origin/main (o git rebase origin/main si el equipo usa rebase).
+
+P: Error "rejected - non-fast-forward" al hacer push.
+R: Alguien subió cambios antes. Ejecutar git pull --rebase origin <rama> y resolver conflictos si aparecen. Luego git push.
+
+=== ACCESO Y HERRAMIENTAS ===
+P: ¿Cómo solicito acceso a un repositorio?
+R: Ticket categoría ACCESO con nombre del repo y justificación. Aprobación del líder de proyecto requerida.
+
+P: La VPN no conecta, ¿qué reviso?
+R: 1) Credenciales vigentes. 2) Cliente VPN actualizado. 3) Conectividad internet. 4) Si persiste, escalar a Redes con ticket P2.
+
+P: ¿Dónde reporto un incidente de seguridad?
+R: Canal #security-incidents inmediatamente. No incluir datos sensibles en tickets públicos. Categoría P1 automática.
+
+=== GENERAL ===
+P: ¿Cuál es el horario de soporte?
+R: Nivel 1: L-V 08:00-20:00. P1 fuera de horario: guardia on-call vía PagerDuty.
+
+P: ¿Cómo adjunto logs a un ticket?
+R: Comprimir con gzip si superan 5 MB. Adjuntar al ticket o subir al almacén interno y pegar enlace.

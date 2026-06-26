@@ -1,11 +1,17 @@
 from pathlib import Path
+from typing import Any
 
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader, TextLoader
+from langchain_core.documents import Document
 from langchain_ollama import OllamaEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.settings import Settings, get_settings
+
+
+def format_documents(documents: list[Document]) -> str:
+    return "\n\n".join(document.page_content for document in documents)
 
 
 def _load_documents(documents_dir: str):
@@ -101,3 +107,65 @@ def index_documents(settings: Settings | None = None) -> int:
     cfg = settings or get_settings()
     vectorstore = build_vector_store(cfg)
     return vectorstore._collection.count()
+
+
+def retrieve_with_sources(
+    consulta: str, settings: Settings | None = None
+) -> dict[str, Any]:
+    """Embedding → Chroma → recuperación MMR con fuentes y contexto formateado."""
+    cfg = settings or get_settings()
+    vectorstore = get_vector_store(cfg)
+    retriever = get_retriever(vectorstore, cfg)
+
+    embeddings = OllamaEmbeddings(
+        model=cfg.embed_model,
+        base_url=cfg.ollama_base_url,
+    )
+    query_vector = embeddings.embed_query(consulta)
+    documents = retriever.invoke(consulta)
+
+    scored = vectorstore.similarity_search_with_score(consulta, k=cfg.retriever_k)
+    scores_by_content = {
+        doc.page_content: round(score, 6) for doc, score in scored
+    }
+
+    sources = []
+    for rank, document in enumerate(documents, start=1):
+        metadata = document.metadata or {}
+        source_name = (
+            metadata.get("source")
+            or metadata.get("file_path")
+            or "documento_soporte"
+        )
+        sources.append(
+            {
+                "rank": rank,
+                "content": document.page_content,
+                "metadata": metadata,
+                "source": source_name,
+                "length": len(document.page_content),
+                "similarity_score": scores_by_content.get(document.page_content),
+            }
+        )
+
+    return {
+        "consulta": consulta,
+        "embed_model": cfg.embed_model,
+        "query_embedding": {
+            "dimensions": len(query_vector),
+            "preview": [round(value, 6) for value in query_vector[:12]],
+        },
+        "context": format_documents(documents),
+        "sources": sources,
+        "retriever": {
+            "type": "mmr",
+            "k": cfg.retriever_k,
+            "fetch_k": cfg.retriever_fetch_k,
+            "lambda_mult": cfg.retriever_lambda_mult,
+        },
+        "vector_store": {
+            "type": "chroma",
+            "collection": cfg.chroma_collection,
+            "total_chunks": vectorstore._collection.count(),
+        },
+    }

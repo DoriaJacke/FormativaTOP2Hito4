@@ -1,0 +1,42 @@
+PROCEDIMIENTOS DE SOPORTE TÉCNICO — Nivel 1 y Nivel 2
+Versión 3.1 — Mesa de Ayuda
+
+=== CLASIFICACIÓN DE TICKETS ===
+Categorías: INFRA (servidores, red), DEV (Git, código), DOCKER (contenedores), ACCESO (permisos, cuentas), FAQ (consultas recurrentes).
+Prioridades: P1 crítico (producción caída), P2 alto (bloquea trabajo), P3 medio, P4 bajo.
+SLA respuesta: P1 < 15 min, P2 < 1 h, P3 < 4 h, P4 < 24 h.
+
+=== PROCEDIMIENTO ESTÁNDAR NIVEL 1 ===
+1. Recibir ticket con: ticket_id, usuario, descripción del problema, capturas si aplica.
+2. Verificar en la base de conocimiento (RAG) manuales Docker, Linux, Git y FAQ.
+3. Reproducir el problema si es posible en entorno de prueba.
+4. Aplicar solución documentada o escalar a Nivel 2.
+5. Registrar resolución en el ticket con pasos ejecutados y fuentes consultadas.
+6. Confirmar con el usuario antes de cerrar.
+
+=== ESCALAMIENTO A NIVEL 2 ===
+Escalar cuando:
+  - El problema afecta producción (P1/P2 sin solución en 30 min)
+  - Se requiere acceso root o cambios en infraestructura
+  - Bug confirmado en aplicación interna
+  - Pérdida de datos o corrupción de repositorio Git
+Información obligatoria al escalar: ticket_id, pasos ya intentados, logs relevantes, hora de inicio.
+
+=== REINICIO DE SERVICIOS (AUTORIZADO) ===
+Antes de reiniciar cualquier servicio en producción:
+  1. Notificar al canal #ops-alerts en Slack
+  2. Verificar ventana de mantenimiento o impacto
+  3. Documentar estado previo: systemctl status <servicio>
+  4. Ejecutar reinicio: sudo systemctl restart <servicio>
+  5. Verificar recuperación y monitoreo post-reinicio
+
+=== ACCESO REMOTO ===
+VPN corporativa requerida para acceso a servidores internos.
+SSH: usar clave pública registrada en el portal de acceso.
+Nunca compartir credenciales por chat o email.
+Sesiones SSH inactivas > 30 min se cierran automáticamente.
+
+=== BACKUP Y RECUPERACIÓN ===
+Backups diarios de repositorios Git y volúmenes Docker críticos.
+Restauración requiere ticket P2 mínimo y aprobación del responsable de área.
+Procedimiento de restauración Git: contactar equipo DevOps con commit hash objetivo.

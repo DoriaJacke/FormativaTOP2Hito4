@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  generarMinuta,
+  consultarSoporte,
   getHealth,
   getRagCorpus,
   getReadiness,
@@ -9,41 +9,45 @@ import {
   retrieveRagDebug,
 } from "./api";
 import StatusPanel from "./components/StatusPanel";
-import MinutaForm from "./components/MinutaForm";
-import MinutaResult from "./components/MinutaResult";
+import SupportForm from "./components/SupportForm";
+import SupportResult from "./components/SupportResult";
 import HistoryPanel from "./components/HistoryPanel";
 import DebugPanel from "./components/DebugPanel";
 
 const DEMO_PRESETS = [
   {
-    id: "maria",
-    label: "Actividad 1 — María (lactosa)",
-    nino_id: "maria_001",
-    session_id: "jard01:maria",
+    id: "docker-simple",
+    label: "Docker - consulta simple",
+    ticket_id: "TKT-0042",
+    session_id: "soporte:docker",
+    nivel_usuario: "tecnico",
     consulta:
-      "Maria, 2 anios, alergia lactosa. Genera almuerzo del lunes.",
+      "Mi contenedor web no inicia. El error dice 'port is already allocated' en el puerto 8080.",
   },
   {
-    id: "pedro-1",
-    label: "Actividad 2 — Pedro consulta 1",
-    nino_id: "pedro_001",
-    session_id: "test:pedro",
+    id: "docker-complex",
+    label: "Docker - consulta compleja",
+    ticket_id: "TKT-0187",
+    session_id: "soporte:infra",
+    nivel_usuario: "tecnico",
     consulta:
-      "Pedro, 2 anios, alergico a mariscos y huevo. Genera desayuno del lunes.",
+      "Tenemos un servicio web en Docker Compose que dejó de levantarse en producción (P2). El error es \"port is already allocated\" en el puerto 8080. Ya ejecuté docker ps y veo otro contenedor usando ese puerto, pero al intentar detenerlo con docker stop me da \"Permission denied\". En el host (Ubuntu) sospecho que hay un proceso del sistema ocupando el puerto. Necesito: (1) identificar qué ocupa el 8080, (2) liberar el puerto de forma segura, (3) relanzar el stack con docker compose up -d, y (4) saber si debo escalar a Nivel 2 o si puedo cerrar el ticket yo mismo según los procedimientos internos.",
   },
   {
-    id: "pedro-2",
-    label: "Actividad 2 — Pedro consulta 2 (memoria)",
-    nino_id: "pedro_001",
-    session_id: "test:pedro",
+    id: "escenario-3",
+    label: "Escenario 3 - consulta sin respuesta documental",
+    ticket_id: "TKT-0300",
+    session_id: "soporte:escenario3",
+    nivel_usuario: "usuario",
     consulta:
-      "Genera almuerzo del lunes respetando todas sus restricciones alimentarias.",
+      "Necesito configurar la autenticacion SSO con Azure Active Directory para nuestra aplicacion interna de nominas. ¿Existe un procedimiento documentado para integrar SAML 2.0, que permisos debo solicitar y que pasos debo seguir segun la documentacion interna?",
   },
 ];
 
 const INITIAL_FORM = {
-  nino_id: "maria_001",
-  session_id: "jard01:maria",
+  ticket_id: "TKT-0042",
+  session_id: "soporte:docker",
+  nivel_usuario: "tecnico",
   consulta: "",
 };
 
@@ -56,7 +60,7 @@ export default function App() {
 
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const [loadingMinuta, setLoadingMinuta] = useState(false);
+  const [loadingSoporte, setLoadingSoporte] = useState(false);
   const [reindexing, setReindexing] = useState(false);
   const [history, setHistory] = useState([]);
 
@@ -130,9 +134,17 @@ export default function App() {
     loadDebugData();
   }, [refreshStatus, loadDebugData]);
 
+  function buildConsulta(payload) {
+    return (
+      `Ticket: ${payload.ticket_id}\n` +
+      `Nivel usuario: ${payload.nivel_usuario}\n` +
+      payload.consulta
+    );
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
-    setLoadingMinuta(true);
+    setLoadingSoporte(true);
     setError("");
     setResult(null);
 
@@ -145,9 +157,7 @@ export default function App() {
     };
 
     try {
-      const consulta = `ID del nino: ${form.nino_id}\n${form.consulta}`;
-      void fetchRagDebug(consulta);
-      const data = await generarMinuta(form);
+      const data = await consultarSoporte(form);
       setResult(data);
       entry.response = data;
       setHistory((prev) => [entry, ...prev]);
@@ -157,14 +167,15 @@ export default function App() {
       entry.error = message;
       setHistory((prev) => [entry, ...prev]);
     } finally {
-      setLoadingMinuta(false);
+      setLoadingSoporte(false);
     }
   }
 
   function applyPreset(preset) {
     setForm({
-      nino_id: preset.nino_id,
+      ticket_id: preset.ticket_id,
       session_id: preset.session_id,
+      nivel_usuario: preset.nivel_usuario,
       consulta: preset.consulta,
     });
     setError("");
@@ -196,10 +207,11 @@ export default function App() {
 
       <header className="header">
         <div>
-          <p className="eyebrow">Ingeniería Informática — IA Embebida</p>
-          <h1>Minutas IA</h1>
+          <p className="eyebrow">Caso 2 — Asistente de Soporte Técnico</p>
+          <h1>Soporte IA — Arquitectura RAG</h1>
           <p className="subtitle">
-            Panel de pruebas para LLM + RAG + Redis + LangChain + Ollama
+            Usuario → Pregunta → Embedding → Base Vectorial → Recuperación →
+            LLM → Respuesta + Fuentes
           </p>
         </div>
         <div className="header-actions">
@@ -231,18 +243,23 @@ export default function App() {
             loading={loadingStatus}
           />
 
-          <MinutaForm
+          <SupportForm
             form={form}
             setForm={setForm}
             onSubmit={handleSubmit}
-            loading={loadingMinuta}
+            loading={loadingSoporte}
             presets={DEMO_PRESETS}
             onPreset={applyPreset}
           />
+
         </section>
 
         <section className="column">
-          <MinutaResult result={result} error={error} loading={loadingMinuta} />
+          <SupportResult
+            result={result}
+            error={error}
+            loading={loadingSoporte}
+          />
           <HistoryPanel history={history} onClear={() => setHistory([])} />
         </section>
       </main>
@@ -251,12 +268,10 @@ export default function App() {
         systemPrompt={systemPrompt}
         corpus={corpus}
         ragDebug={ragDebug}
-        loading={debugLoading || loadingMinuta}
+        loading={debugLoading}
         error={debugError}
         onRefreshCorpus={loadDebugData}
-        onPreviewRag={() =>
-          fetchRagDebug(`ID del nino: ${form.nino_id}\n${form.consulta}`)
-        }
+        onPreviewRag={() => fetchRagDebug(buildConsulta(form))}
         canPreviewRag={Boolean(form.consulta.trim())}
       />
     </div>

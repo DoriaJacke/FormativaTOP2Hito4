@@ -34,11 +34,11 @@ services:
       OLLAMA_BASE_URL: http://ollama:11434
       REDIS_URL: redis://redis:6379
       CHROMA_DIR: /app/data/chroma_db
-      DOCUMENTS_DIR: /app/documentos_normativos
+      DOCUMENTS_DIR: /app/documentos_soporte
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     volumes:
       - chroma_data:/app/data/chroma_db
-      - ./documentos_normativos:/app/documentos_normativos:ro
+      - ./documentos_soporte:/app/documentos_soporte:ro
     depends_on:
       redis:
         condition: service_healthy

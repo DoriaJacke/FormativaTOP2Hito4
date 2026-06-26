@@ -1,53 +1,57 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
 
-class Ingrediente(BaseModel):
-    nombre: str
-    gramos: float = Field(gt=0, lt=500, description="Peso en gramos")
+class PasoSolucion(BaseModel):
+    orden: int = Field(ge=1)
+    descripcion: str
+    comando: Optional[str] = None
 
 
-class TiempoComida(BaseModel):
-    nombre: str
-    plato: str
-    ingredientes: List[Ingrediente]
-    kcal: Optional[float] = Field(default=None, gt=0, lt=600)
-    proteinas_g: Optional[float] = None
-    carbohidratos_g: Optional[float] = None
-    grasas_g: Optional[float] = None
-    verificado_alergenos: bool
-    fuente_normativa: Optional[str] = None
+class ReferenciaDocumental(BaseModel):
+    documento: str
+    seccion: str
+    fuente_documento: str
 
 
-class DiaSemana(BaseModel):
-    dia: str
-    tiempos: List[TiempoComida]
-
-
-class Minuta(BaseModel):
-    nino_id: str
-    semana: str
-    alergenos_excluidos: List[str]
+class RespuestaSoporte(BaseModel):
+    ticket_id: str
+    categoria: Literal["docker", "linux", "git", "infra", "acceso", "faq", "general"]
+    resumen: str
+    nivel_confianza: Literal["alta", "media", "baja"]
     generada_en: datetime
-    dias: List[DiaSemana]
-
-    def verificar_alergenos(self, alergenos: List[str]) -> bool:
-        for dia in self.dias:
-            for tiempo in dia.tiempos:
-                for ingrediente in tiempo.ingredientes:
-                    for alergeno in alergenos:
-                        if alergeno.lower() in ingrediente.nombre.lower():
-                            return False
-        return True
+    pasos: List[PasoSolucion]
+    referencias_documentales: List[ReferenciaDocumental] = Field(default_factory=list)
+    notas_adicionales: Optional[str] = None
 
 
-class SolicitudMinuta(BaseModel):
-    nino_id: str
+class SolicitudSoporte(BaseModel):
+    ticket_id: str
     consulta: str
     session_id: str
+    nivel_usuario: Optional[Literal["usuario", "tecnico"]] = "usuario"
 
 
 class ConsultaRagDebug(BaseModel):
     consulta: str
+
+
+class FuenteRag(BaseModel):
+    rank: int
+    content: str
+    source: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    length: int
+    similarity_score: Optional[float] = None
+
+
+class PipelineRag(BaseModel):
+    pregunta: str
+    embed_model: str
+    query_embedding: dict[str, Any]
+    vector_store: dict[str, Any]
+    retriever: dict[str, Any]
+    llm_model: str
+    chunks_recuperados: int

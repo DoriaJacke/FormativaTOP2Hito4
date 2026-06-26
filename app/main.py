@@ -6,11 +6,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 
-from app.chain_builder import get_minuta_chain
+from app.chain_builder import get_support_chain
 from app.debug import get_corpus_debug_info, get_system_prompt, retrieve_debug_info
-from app.models import ConsultaRagDebug, Minuta, SolicitudMinuta
-from app.normalize import normalize_minuta_payload
-from app.rag_indexer import get_vector_store, index_documents
+from app.models import (
+    ConsultaRagDebug,
+    FuenteRag,
+    PipelineRag,
+    RespuestaSoporte,
+    SolicitudSoporte,
+)
+from app.normalize import (
+    apply_coverage_guard,
+    build_sin_documentacion_respuesta,
+    coerce_llm_output,
+    normalize_respuesta_payload,
+)
+from app.rag_indexer import get_vector_store, index_documents, retrieve_with_sources
 from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -19,10 +30,10 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     description=(
-        "API de generacion de minutas alimentarias con Ollama, LangChain, "
-        "Redis y RAG."
+        "Asistente de soporte tecnico con Ollama, LangChain, Redis y RAG "
+        "sobre documentacion interna (Docker, Linux, Git, procedimientos, FAQ)."
     ),
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -101,58 +112,74 @@ def debug_rag_retrieve(body: ConsultaRagDebug):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@app.post("/minuta/generar")
-def generar_minuta(solicitud: SolicitudMinuta):
-    chain = get_minuta_chain()
+@app.post("/soporte/consultar")
+def consultar_soporte(solicitud: SolicitudSoporte):
+    chain = get_support_chain()
 
     consulta = (
-        f"ID del nino: {solicitud.nino_id}\n"
+        f"Ticket: {solicitud.ticket_id}\n"
+        f"Nivel usuario: {solicitud.nivel_usuario}\n"
         f"{solicitud.consulta}"
     )
 
     try:
+        rag = retrieve_with_sources(consulta)
+    except Exception as exc:
+        logger.exception("Error en recuperacion RAG")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    try:
         raw: dict = chain.invoke(
-            {"input": consulta},
+            {"input": consulta, "context": rag["context"]},
             config={"configurable": {"session_id": solicitud.session_id}},
         )
     except Exception as exc:
         logger.exception("Error al invocar la cadena LangChain")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    if "minuta" not in raw:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "mensaje": "La respuesta no contiene la clave 'minuta'",
-                "raw": raw,
-            },
-        )
+    raw = apply_coverage_guard(raw, consulta, solicitud.ticket_id, rag["sources"])
 
-    raw["minuta"] = normalize_minuta_payload(raw["minuta"], solicitud.nino_id)
+    raw = coerce_llm_output(raw, solicitud.ticket_id)
+
+    if "respuesta" not in raw or not isinstance(raw["respuesta"], dict):
+        raw = {
+            "respuesta": build_sin_documentacion_respuesta(solicitud.ticket_id)
+        }
+
+    raw["respuesta"] = normalize_respuesta_payload(
+        raw["respuesta"], solicitud.ticket_id
+    )
 
     try:
-        minuta = Minuta(**raw["minuta"])
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "mensaje": (
-                    "El LLM devolvio JSON que no cumple el esquema Pydantic. "
-                    "Reintenta la consulta o revisa el prompt."
-                ),
-                "errores": exc.errors(),
-                "raw": raw,
-            },
-        ) from exc
-
-    alergenos = raw["minuta"].get("alergenos_excluidos", [])
-    if alergenos and not minuta.verificar_alergenos(alergenos):
-        raise HTTPException(
-            status_code=422,
-            detail="Se detecto un alergeno en los ingredientes generados",
+        respuesta = RespuestaSoporte(**raw["respuesta"])
+    except ValidationError:
+        logger.warning("Validacion fallida tras normalizar; usando respuesta de respaldo")
+        raw["respuesta"] = build_sin_documentacion_respuesta(
+            solicitud.ticket_id,
+            mensaje=raw["respuesta"].get("resumen"),
         )
+        raw["respuesta"] = normalize_respuesta_payload(
+            raw["respuesta"], solicitud.ticket_id
+        )
+        respuesta = RespuestaSoporte(**raw["respuesta"])
 
-    return JSONResponse(content=raw)
+    fuentes = [FuenteRag(**source) for source in rag["sources"]]
+    pipeline = PipelineRag(
+        pregunta=consulta,
+        embed_model=rag["embed_model"],
+        query_embedding=rag["query_embedding"],
+        vector_store=rag["vector_store"],
+        retriever=rag["retriever"],
+        llm_model=settings.llm_model,
+        chunks_recuperados=len(fuentes),
+    )
+
+    response = {
+        "respuesta": respuesta.model_dump(mode="json"),
+        "fuentes": [fuente.model_dump() for fuente in fuentes],
+        "pipeline": pipeline.model_dump(),
+    }
+    return JSONResponse(content=response)
 
 
 @app.post("/admin/reindex")
@@ -163,5 +190,5 @@ def reindex_corpus():
         logger.exception("Error al reindexar documentos")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    get_minuta_chain.cache_clear()
+    get_support_chain.cache_clear()
     return {"status": "ok", "chunks_indexados": chunks}

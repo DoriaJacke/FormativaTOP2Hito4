@@ -27,7 +27,7 @@ export default function HistoryPanel({ history, onClear }) {
               {new Date(entry.at).toLocaleString("es-CL")}
             </time>
             <p>
-              <strong>{entry.request.session_id}</strong> — {entry.request.consulta}
+              <strong>{entry.request.ticket_id}</strong> ({entry.request.session_id}) — {entry.request.consulta}
             </p>
             {entry.error ? (
               <p className="error-text">{entry.error}</p>

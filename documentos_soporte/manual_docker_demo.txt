@@ -1,0 +1,41 @@
+MANUAL DOCKER — Guía interna de soporte técnico
+Versión 1.2 — Equipo de Infraestructura
+
+=== 1. CONCEPTOS BÁSICOS ===
+Docker empaqueta aplicaciones en contenedores aislados. Un contenedor usa una imagen como plantilla.
+Comandos esenciales:
+  docker ps          — contenedores en ejecución
+  docker ps -a       — todos los contenedores (incluidos detenidos)
+  docker images      — imágenes locales
+  docker logs <id>   — logs del contenedor
+
+=== 2. CONTENEDOR NO INICIA ===
+Síntoma: docker run o docker compose up falla con "port is already allocated".
+Causa: otro proceso o contenedor usa el mismo puerto host.
+Procedimiento:
+  1. Identificar el puerto conflictivo en el mensaje de error (ej. 8080).
+  2. Ejecutar: docker ps --format "table {{.ID}}\t{{.Ports}}\t{{.Names}}"
+  3. Si un contenedor ocupa el puerto: docker stop <container_id>
+  4. En Linux, verificar procesos: sudo lsof -i :8080
+  5. Relanzar: docker compose up -d
+
+Síntoma: "Cannot connect to the Docker daemon".
+Causa: servicio Docker detenido o usuario sin permisos.
+Procedimiento:
+  1. Linux: sudo systemctl status docker
+  2. Si está inactivo: sudo systemctl start docker
+  3. Agregar usuario al grupo docker: sudo usermod -aG docker $USER (requiere re-login)
+
+=== 3. GESTIÓN DE IMÁGENES ===
+Limpiar imágenes huérfanas: docker image prune -a
+Ver uso de disco: docker system df
+Reconstruir sin caché: docker compose build --no-cache
+
+=== 4. REDES DOCKER ===
+Listar redes: docker network ls
+Inspeccionar red: docker network inspect <nombre>
+Los servicios en docker-compose comparten una red interna por defecto.
+
+=== 5. VOLÚMENES Y DATOS ===
+Listar volúmenes: docker volume ls
+Backup de volumen: docker run --rm -v <vol>:/data -v $(pwd):/backup alpine tar czf /backup/vol.tar.gz /data

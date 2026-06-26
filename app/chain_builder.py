@@ -1,24 +1,28 @@
 from functools import lru_cache
-from operator import itemgetter
 
-from langchain_core.documents import Document
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from langchain_ollama import ChatOllama
 
 from app.memory import add_memory_to_chain
-from app.rag_indexer import get_retriever, get_vector_store
+from app.rag_indexer import format_documents, get_retriever, get_vector_store
 from app.settings import Settings, get_settings
 from app.system_prompt import SYSTEM_PROMPT
 
 
-def _format_docs(documents: list[Document]) -> str:
-    return "\n\n".join(document.page_content for document in documents)
+def _resolve_context(data: dict) -> dict:
+    if data.get("context"):
+        return data
+    cfg = get_settings()
+    vectorstore = get_vector_store(cfg)
+    retriever = get_retriever(vectorstore, cfg)
+    documents = retriever.invoke(data["input"])
+    return {**data, "context": format_documents(documents)}
 
 
 def build_llm_chain(settings: Settings | None = None):
-    """Cadena hasta el LLM. La salida es AIMessage (compatible con Redis history)."""
+    """Cadena hasta el LLM. Acepta contexto precomputado o recupera vía RAG."""
     cfg = settings or get_settings()
 
     llm = ChatOllama(
@@ -35,26 +39,21 @@ def build_llm_chain(settings: Settings | None = None):
             ("placeholder", "{history}"),
             (
                 "human",
-                "Contexto normativo recuperado:\n{context}\n\n"
-                "Solicitud: {input}",
+                "Documentacion interna recuperada:\n{context}\n\n"
+                "Consulta de soporte: {input}",
             ),
         ]
     )
 
-    vectorstore = get_vector_store(cfg)
-    retriever = get_retriever(vectorstore, cfg)
-
     return (
-        RunnablePassthrough.assign(
-            context=(itemgetter("input") | retriever | _format_docs),
-            system_prompt=lambda _: SYSTEM_PROMPT,
-        )
+        RunnableLambda(_resolve_context)
+        | RunnablePassthrough.assign(system_prompt=lambda _: SYSTEM_PROMPT)
         | prompt
         | llm
     )
 
 
-def build_minuta_chain(settings: Settings | None = None):
+def build_support_chain(settings: Settings | None = None):
     """
     Memoria Redis envuelve solo prompt+LLM.
     JsonOutputParser queda fuera para no guardar dicts en el historial.
@@ -66,5 +65,5 @@ def build_minuta_chain(settings: Settings | None = None):
 
 
 @lru_cache
-def get_minuta_chain():
-    return build_minuta_chain(get_settings())
+def get_support_chain():
+    return build_support_chain(get_settings())

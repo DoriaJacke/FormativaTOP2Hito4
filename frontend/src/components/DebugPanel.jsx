@@ -73,10 +73,10 @@ export default function DebugPanel({
     <section className="debug-section" aria-labelledby="debug-title">
       <div className="debug-header">
         <div>
-          <h2 id="debug-title">Pre-prompt y vectorización RAG</h2>
+          <h2 id="debug-title">Documentación indexada y depuración RAG</h2>
           <p className="muted">
             Inspecciona el system prompt y cómo la consulta se recupera del
-            corpus indexado en Chroma.
+            corpus de soporte técnico en Chroma.
           </p>
         </div>
         <div className="debug-actions">
@@ -146,8 +146,8 @@ export default function DebugPanel({
 
         {!ragDebug && !loading && !error && (
           <p className="muted">
-            Escribe una consulta y pulsa «Vista previa RAG» o «Generar minuta»
-            para ver la vectorización de la consulta y los top-k fragmentos MMR.
+            Escribe una consulta y pulsa «Vista previa RAG» o «Enviar consulta»
+            para ver la vectorización y los fragmentos MMR recuperados.
           </p>
         )}
 

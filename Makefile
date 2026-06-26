@@ -29,9 +29,9 @@ reindex:
 	curl -s -X POST http://localhost:8000/admin/reindex | python3 -m json.tool
 
 demo:
-	curl -s -X POST http://localhost:8000/minuta/generar \
+	curl -s -X POST http://localhost:8000/soporte/consultar \
 		-H "Content-Type: application/json" \
-		-d '{"nino_id":"maria_001","session_id":"jard01:maria","consulta":"Maria, 2 anios, alergia lactosa. Genera almuerzo del lunes."}' \
+		-d '{"ticket_id":"TKT-0042","session_id":"soporte:docker","nivel_usuario":"tecnico","consulta":"Mi contenedor web no inicia. Error: port is already allocated en puerto 8080."}' \
 		| python3 -m json.tool
 
 shell:

@@ -1,0 +1,49 @@
+MANUAL GIT — Guía interna de soporte técnico
+Versión 1.5 — Equipo de Desarrollo
+
+=== 1. COMANDOS BÁSICOS ===
+Estado del repositorio: git status
+Ver cambios: git diff
+Agregar archivos: git add <archivo>  o  git add .
+Commit: git commit -m "mensaje descriptivo"
+Push: git push origin <rama>
+Pull: git pull origin <rama>
+Historial: git log --oneline -10
+
+=== 2. CONFLICTOS DE MERGE ===
+Síntoma: "CONFLICT (content): Merge conflict in <archivo>" al hacer git pull o git merge.
+Procedimiento:
+  1. Ver archivos en conflicto: git status
+  2. Abrir cada archivo y buscar marcadores <<<<<<< ======= >>>>>>>
+  3. Editar manualmente conservando el código correcto
+  4. Eliminar los marcadores de conflicto
+  5. git add <archivo_resuelto>
+  6. git commit (o git merge --continue si es merge en curso)
+  7. git push origin <rama>
+
+Abortar merge en curso: git merge --abort
+Abortar rebase: git rebase --abort
+
+=== 3. RAMAS ===
+Listar ramas: git branch -a
+Crear rama: git checkout -b feature/nombre
+Cambiar rama: git checkout <rama>  o  git switch <rama>
+Eliminar rama local: git branch -d <rama>
+Actualizar referencias remotas: git fetch --all --prune
+
+=== 4. DESHACER CAMBIOS ===
+Descartar cambios no commiteados: git checkout -- <archivo>  o  git restore <archivo>
+Deshacer último commit (mantener cambios): git reset --soft HEAD~1
+Deshacer último commit (descartar cambios): git reset --hard HEAD~1
+CUIDADO: git reset --hard es destructivo. No usar en ramas compartidas sin coordinación.
+
+=== 5. STASH (CAMBIOS TEMPORALES) ===
+Guardar cambios temporalmente: git stash
+Recuperar: git stash pop
+Listar stashes: git stash list
+
+=== 6. AUTENTICACIÓN ===
+Error: "Authentication failed" o "Permission denied (publickey)".
+Verificar remoto: git remote -v
+SSH: ssh -T git@github.com (o el host del servidor Git interno)
+Configurar usuario: git config --global user.name "Nombre" y git config --global user.email "email@empresa.com"

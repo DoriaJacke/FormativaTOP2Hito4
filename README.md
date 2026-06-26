@@ -1,29 +1,40 @@
-# Minutas IA — Proyecto base dockerizado
+# Asistente de Soporte Técnico — Caso 2
 
-Sistema de generación de minutas alimentarias para niños menores de 3 años con alergias, integrando:
+Asistente RAG para ayudar a usuarios y técnicos usando documentación interna:
+
+- Manual Docker
+- Manual Linux
+- Manual Git
+- Procedimientos de soporte
+- Preguntas frecuentes (FAQ)
+
+## Arquitectura RAG
+
+```
+Usuario → Pregunta → Embedding → Base Vectorial → Recuperación de Contexto → LLM → Respuesta + Fuentes
+```
+
+Stack tecnológico:
 
 - **Ollama** — inferencia local (LLM + embeddings)
 - **LangChain (LCEL)** — orquestación de la cadena
-- **Redis** — memoria contextual de sesión
+- **Redis** — memoria contextual de sesión por ticket
 - **Chroma** — vector store para RAG
 - **FastAPI** — API REST con salida JSON validada (Pydantic)
-- **React** — panel web de pruebas
+- **React** — panel web con visualización del pipeline RAG
 
 ## Requisitos
 
 - Docker Desktop o Docker Engine + Docker Compose v2
 - RAM según perfil: **8 GB** (ligero), **16 GB** (medio, recomendado), **16+ GB** (alto)
-- La primera ejecución descarga modelos Ollama (~0.7 GB a ~5 GB según perfil)
 
-### Perfiles de hardware (heterogeneidad en el curso)
+### Perfiles de hardware
 
 | Perfil | Comando | Modelo | Uso |
 |--------|---------|--------|-----|
 | Ligero | `make perfil-ligero` | `llama3.2:1b` | 8 GB RAM, sin GPU |
 | Medio | `make perfil-medio` | `llama3.2` | 16 GB RAM (default) |
 | Alto | `make perfil-alto` | `llama3.1:8b` | GPU / Apple Silicon |
-
-Ver guía completa: **[ACTIVIDAD_FORMATIVA.md](./ACTIVIDAD_FORMATIVA.md)** o PDF desde **`actividad_formativa.tex`**
 
 ## Inicio rápido
 
@@ -34,7 +45,7 @@ make up
 
 Espera a que termine la descarga de modelos y la indexación RAG. Luego abre:
 
-**[http://localhost:3000](http://localhost:3000)** — panel React de pruebas
+**[http://localhost:3000](http://localhost:3000)** — panel React
 
 Verificación por CLI:
 
@@ -54,150 +65,106 @@ make demo
 
 Documentación interactiva API: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-## Frontend React
+## Frontend
 
 El panel web permite:
 
 - Verificar estado de API, Redis, Chroma y Ollama
-- Generar minutas con formulario interactivo
-- Cargar escenarios de las actividades de clase (María, Pedro memoria Redis)
-- Ver resultado estructurado + JSON crudo
-- Reindexar el corpus RAG desde la UI
-- **Inspeccionar pre-prompt y vectorización RAG** (system prompt, corpus Chroma, embeddings y fragmentos recuperados)
-
-### Desarrollo local del frontend (sin Docker)
-
-Con la API corriendo en `:8000`:
-
-```bash
-make web-dev
-```
-
-Vite levanta el frontend en [http://localhost:3000](http://localhost:3000) y hace proxy de `/api` hacia la API.
+- Enviar consultas de soporte con ticket_id y nivel de usuario
+- Visualizar el pipeline RAG paso a paso
+- Cargar escenarios de prueba (Docker, Git, Linux)
+- Ver respuesta estructurada con pasos, comandos y fuentes documentales
+- Reindexar el corpus desde la UI
 
 ## Endpoints principales
 
-### `GET /health`
-Estado básico del servicio.
+### `POST /soporte/consultar`
 
-### `GET /health/ready`
-Verifica Redis, Chroma y Ollama.
-
-### `POST /minuta/generar`
-Genera una minuta estructurada en JSON.
+Consulta de soporte con RAG + LLM.
 
 ```bash
-curl -X POST http://localhost:8000/minuta/generar \
+curl -X POST http://localhost:8000/soporte/consultar \
   -H "Content-Type: application/json" \
   -d '{
-    "nino_id": "maria_001",
-    "session_id": "jard01:maria",
-    "consulta": "Maria, 2 anios, alergia lactosa. Genera almuerzo del lunes."
+    "ticket_id": "TKT-0042",
+    "session_id": "soporte:docker",
+    "nivel_usuario": "tecnico",
+    "consulta": "Mi contenedor no inicia. Error: port is already allocated en puerto 8080."
   }'
 ```
 
-### `POST /admin/reindex`
-Reindexa el corpus normativo en Chroma (útil tras agregar PDFs).
+Respuesta incluye `respuesta` (pasos, comandos, referencias), `fuentes` (chunks RAG) y `pipeline` (metadatos de cada etapa).
 
-### `GET /debug/system-prompt`
-Devuelve el pre-prompt (system prompt) activo.
+### Otros endpoints
 
-### `GET /debug/rag/corpus`
-Lista fragmentos indexados con preview de vectores almacenados.
+| Endpoint | Descripción |
+|----------|-------------|
+| `GET /health` | Estado básico |
+| `GET /health/ready` | Verifica Redis + Chroma + Ollama |
+| `POST /admin/reindex` | Reindexa documentación en Chroma |
+| `GET /debug/system-prompt` | System prompt activo |
+| `GET /debug/rag/corpus` | Fragmentos indexados |
+| `POST /debug/rag/retrieve` | Preview de recuperación RAG |
 
-### `POST /debug/rag/retrieve`
-Recupera fragmentos MMR para una consulta y muestra el embedding de la consulta.
+## Corpus documental
 
-```bash
-make reindex
-```
+Archivos demo en `documentos_soporte/`:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `manual_docker_demo.txt` | Contenedores, puertos, daemon |
+| `manual_linux_demo.txt` | Permisos, procesos, systemd |
+| `manual_git_demo.txt` | Merge conflicts, ramas, push |
+| `procedimientos_soporte_demo.txt` | Tickets N1/N2, escalamiento |
+| `faq_soporte_demo.txt` | Preguntas frecuentes |
+
+Para agregar documentación: coloca `.pdf`, `.txt` o `.md` en `documentos_soporte/` y ejecuta `make reindex`.
 
 ## Estructura del proyecto
 
 ```text
 .
-├── app/
-│   ├── main.py           # FastAPI
-│   ├── chain_builder.py  # Cadena LCEL
-│   ├── memory.py         # RedisChatMessageHistory
-│   ├── rag_indexer.py    # Indexación y retriever MMR
-│   ├── models.py         # Esquemas Pydantic
-│   ├── system_prompt.py  # Pre-prompt del dominio
-│   ├── settings.py       # Configuración por variables de entorno
-│   └── bootstrap.py      # Indexación al arranque
-├── frontend/
-│   ├── src/              # React + Vite
-│   ├── Dockerfile        # build + nginx
-│   └── nginx.conf        # proxy /api -> api:8000
-├── documentos_normativos/  # Corpus RAG (.pdf, .txt, .md)
-├── scripts/
-│   └── entrypoint.sh     # Pull de modelos + bootstrap + uvicorn
+├── app/                    # Backend FastAPI + LangChain
+├── frontend/src/           # React + pipeline RAG visual
+├── documentos_soporte/     # Corpus RAG
+├── scripts/entrypoint.sh
 ├── docker-compose.yml
-├── Dockerfile
-├── requirements.txt
 └── Makefile
-```
-
-## Agregar documentos normativos
-
-1. Coloca PDFs o archivos `.txt`/`.md` en `documentos_normativos/`
-2. Ejecuta `make reindex`
-
-## Variables de entorno
-
-Copia `.env.example` a `.env` y ajusta según necesidad:
-
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `OLLAMA_BASE_URL` | `http://ollama:11434` | URL del servidor Ollama |
-| `LLM_MODEL` | `llama3.2` | Modelo de generación |
-| `EMBED_MODEL` | `nomic-embed-text` | Modelo de embeddings |
-| `REDIS_URL` | `redis://redis:6379` | Conexión Redis |
-| `CHROMA_DIR` | `/app/data/chroma_db` | Persistencia del vector store |
-
-## Comandos útiles
-
-```bash
-make up        # Levantar stack completo (incluye web)
-make down      # Detener stack
-make logs      # Ver logs de la API
-make web-logs  # Ver logs del frontend
-make health    # Healthcheck
-make ready     # Readiness (Redis + Chroma + Ollama)
-make demo      # Consulta de ejemplo por curl
-make web-dev   # Frontend en modo desarrollo (Vite)
-make shell     # Shell dentro del contenedor api
 ```
 
 ## Actividad de memoria (Redis)
 
-Consulta 1 y 2 con el mismo `session_id`:
+Dos consultas del mismo ticket con el mismo `session_id`:
 
 ```bash
-# Consulta 1: declarar alergias
-curl -X POST http://localhost:8000/minuta/generar \
+# Consulta 1: conflicto de merge
+curl -X POST http://localhost:8000/soporte/consultar \
   -H "Content-Type: application/json" \
-  -d '{"nino_id":"pedro_001","session_id":"test:pedro","consulta":"Pedro, 2 anios, alergico a mariscos y huevo. Genera desayuno del lunes."}'
+  -d '{"ticket_id":"TKT-0103","session_id":"soporte:git","nivel_usuario":"usuario","consulta":"Al hacer git pull me aparece CONFLICT en package.json."}'
 
-# Consulta 2: sin repetir alergias
-curl -X POST http://localhost:8000/minuta/generar \
+# Consulta 2: seguimiento sin repetir contexto
+curl -X POST http://localhost:8000/soporte/consultar \
   -H "Content-Type: application/json" \
-  -d '{"nino_id":"pedro_001","session_id":"test:pedro","consulta":"Genera almuerzo del lunes respetando sus restricciones."}'
+  -d '{"ticket_id":"TKT-0103","session_id":"soporte:git","nivel_usuario":"usuario","consulta":"Ya resolvi el conflicto. Al hacer push dice rejected non-fast-forward."}'
 ```
 
 Ver historial en Redis:
 
 ```bash
-docker compose exec redis redis-cli LRANGE minuta:test:pedro 0 -1
+docker compose exec redis redis-cli LRANGE support:soporte:git 0 -1
 ```
 
-## Notas para la clase
+## Comandos útiles
 
-- El LLM es un **componente** del sistema, no la aplicación completa.
-- RAG aporta contexto normativo actualizable sin reentrenar.
-- Redis mantiene memoria de sesión entre consultas.
-- Pydantic valida el contrato JSON antes de responder al cliente.
-- Cambiar `LLM_MODEL` en `.env` permite sustituir el motor sin tocar la cadena.
+```bash
+make up        # Levantar stack completo
+make down      # Detener stack
+make logs      # Logs de la API
+make ready     # Readiness check
+make demo      # Consulta Docker de ejemplo
+make reindex   # Reindexar corpus
+make web-dev   # Frontend en desarrollo (Vite)
+```
 
 ## Detener y limpiar volúmenes
 
@@ -205,4 +172,4 @@ docker compose exec redis redis-cli LRANGE minuta:test:pedro 0 -1
 docker compose down -v
 ```
 
-Esto elimina los volúmenes de Redis, Ollama y Chroma.
+Elimina volúmenes de Redis, Ollama y Chroma. Necesario tras cambiar el corpus o la colección Chroma.

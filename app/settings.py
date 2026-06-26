@@ -10,7 +10,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    app_name: str = "Sistema de Minutas Alimentarias IA"
+    app_name: str = "Asistente de Soporte Tecnico IA"
     app_host: str = "0.0.0.0"
     app_port: int = 8000
 
@@ -21,12 +21,12 @@ class Settings(BaseSettings):
     llm_num_ctx: int = 4096
 
     redis_url: str = "redis://redis:6379"
-    redis_key_prefix: str = "minuta:"
+    redis_key_prefix: str = "support:"
     redis_ttl_seconds: int = 86400
 
     chroma_dir: str = "/app/data/chroma_db"
-    chroma_collection: str = "normativa_junji"
-    documents_dir: str = "/app/documentos_normativos"
+    chroma_collection: str = "docs_soporte_tecnico"
+    documents_dir: str = "/app/documentos_soporte"
 
     retriever_k: int = 4
     retriever_fetch_k: int = 20

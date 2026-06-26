@@ -1,4 +1,4 @@
-export default function MinutaForm({
+export default function SupportForm({
   form,
   setForm,
   onSubmit,
@@ -14,10 +14,10 @@ export default function MinutaForm({
 
   return (
     <section className="card">
-      <h2>Generar minuta</h2>
+      <h2>Consulta de soporte</h2>
 
       <div className="presets">
-        <p className="muted">Escenarios de la clase:</p>
+        <p className="muted">Escenarios de prueba:</p>
         <div className="preset-buttons">
           {presets.map((preset) => (
             <button
@@ -34,13 +34,13 @@ export default function MinutaForm({
 
       <form onSubmit={onSubmit} className="form">
         <div className="field">
-          <label htmlFor="nino_id">ID del niño</label>
+          <label htmlFor="ticket_id">ID del ticket</label>
           <input
-            id="nino_id"
-            name="nino_id"
+            id="ticket_id"
+            name="ticket_id"
             type="text"
-            value={form.nino_id}
-            onChange={updateField("nino_id")}
+            value={form.ticket_id}
+            onChange={updateField("ticket_id")}
             autoComplete="off"
             spellCheck={false}
             required
@@ -60,25 +60,39 @@ export default function MinutaForm({
             required
           />
           <p className="hint">
-            Usa el mismo session_id para probar memoria contextual entre consultas.
+            Usa el mismo session_id para probar memoria contextual entre consultas
+            del mismo ticket.
           </p>
         </div>
 
         <div className="field">
-          <label htmlFor="consulta">Consulta</label>
+          <label htmlFor="nivel_usuario">Nivel del usuario</label>
+          <select
+            id="nivel_usuario"
+            name="nivel_usuario"
+            value={form.nivel_usuario}
+            onChange={updateField("nivel_usuario")}
+          >
+            <option value="usuario">Usuario final</option>
+            <option value="tecnico">Técnico de soporte</option>
+          </select>
+        </div>
+
+        <div className="field">
+          <label htmlFor="consulta">Problema / consulta</label>
           <textarea
             id="consulta"
             name="consulta"
             rows={5}
             value={form.consulta}
             onChange={updateField("consulta")}
-            placeholder="Ej: Maria, 2 años, alergia lactosa. Genera almuerzo del lunes…"
+            placeholder="Ej: Mi contenedor Docker no inicia, error port is already allocated en 8080…"
             required
           />
         </div>
 
         <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "Generando minuta…" : "Generar minuta"}
+          {loading ? "Procesando RAG + LLM…" : "Enviar consulta (RAG)"}
         </button>
       </form>
     </section>

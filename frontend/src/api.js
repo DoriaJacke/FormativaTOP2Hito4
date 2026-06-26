@@ -41,8 +41,8 @@ export function getReadiness() {
   return request("/health/ready");
 }
 
-export function generarMinuta(payload) {
-  return request("/minuta/generar", {
+export function consultarSoporte(payload) {
+  return request("/soporte/consultar", {
     method: "POST",
     body: JSON.stringify(payload),
   });

@@ -1,1 +1,1 @@
-"""Sistema de minutas alimentarias con LLM + RAG + Redis + LangChain."""
+"""Asistente de soporte tecnico con RAG, LangChain, Redis y Ollama."""

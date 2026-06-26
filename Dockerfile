@@ -14,10 +14,10 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY app ./app
-COPY documentos_normativos ./documentos_normativos
+COPY documentos_soporte ./documentos_soporte
 COPY scripts/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh && mkdir -p /app/data/chroma_db
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh && mkdir -p /app/data/chroma_db
 
 EXPOSE 8000
 

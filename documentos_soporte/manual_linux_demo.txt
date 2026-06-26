@@ -1,0 +1,43 @@
+MANUAL LINUX — Guía interna de soporte técnico
+Versión 2.0 — Equipo de Sistemas
+
+=== 1. PERMISOS Y ARCHIVOS ===
+Permisos en Linux: lectura (r=4), escritura (w=2), ejecución (x=1).
+Ver permisos: ls -la /ruta/archivo
+Cambiar propietario: sudo chown usuario:grupo archivo
+Cambiar permisos: chmod 644 archivo (rw-r--r--)
+Síntoma: "Permission denied" al ejecutar script.
+Solución: chmod +x script.sh  o  bash script.sh
+
+=== 2. GESTIÓN DE PROCESOS ===
+Listar procesos: ps aux | grep <nombre>
+Procesos en tiempo real: top  o  htop
+Matar proceso por PID: kill <pid>
+Forzar terminación: kill -9 <pid>
+Buscar proceso por puerto: sudo lsof -i :<puerto>
+sudo ss -tlnp | grep <puerto>
+
+=== 3. ESPACIO EN DISCO ===
+Ver uso: df -h
+Uso por directorio: du -sh /ruta/*
+Encontrar archivos grandes: find /var/log -type f -size +100M
+Limpiar logs antiguos (con autorización): sudo journalctl --vacuum-time=7d
+
+=== 4. SERVICIOS SYSTEMD ===
+Estado: sudo systemctl status <servicio>
+Iniciar: sudo systemctl start <servicio>
+Habilitar al arranque: sudo systemctl enable <servicio>
+Ver logs: sudo journalctl -u <servicio> -f
+
+=== 5. RED Y CONECTIVIDAD ===
+Verificar interfaz: ip addr show
+Probar conectividad: ping -c 4 <host>
+Probar puerto: nc -zv <host> <puerto>  o  curl -I http://<host>:<puerto>
+DNS: cat /etc/resolv.conf
+Reiniciar red (Ubuntu): sudo systemctl restart systemd-networkd
+
+=== 6. USUARIOS Y GRUPOS ===
+Usuario actual: whoami
+Grupos del usuario: groups
+Agregar a grupo: sudo usermod -aG <grupo> <usuario>
+IMPORTANTE: cambios de grupo requieren cerrar sesión y volver a entrar.
